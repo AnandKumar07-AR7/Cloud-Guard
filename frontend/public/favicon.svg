@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <defs>
+    <linearGradient id="shield-bg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="55%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="glow">
+      <feDropShadow dx="0" dy="1" stdDeviation="2.5" flood-color="#6366f1" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <!-- Shield body -->
+  <path
+    d="M24 3L6 10v11c0 10.5 7.7 20.4 18 22.8C34.3 41.4 42 31.5 42 21V10L24 3z"
+    fill="url(#shield-bg)"
+    filter="url(#glow)"
+  />
+  <!-- Inner gloss -->
+  <path
+    d="M24 5.5L8.5 11.8V21c0 9.2 6.4 18 15.5 20.5C33.1 39 39.5 30.2 39.5 21v-9.2L24 5.5z"
+    fill="rgba(255,255,255,0.12)"
+  />
+  <!-- Check mark -->
+  <path
+    d="M15 24l6 6 12-12"
+    stroke="#ffffff"
+    stroke-width="2.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    opacity="0.95"
+  />
+  <!-- Top-left shine -->
+  <ellipse cx="19" cy="14" rx="4" ry="2" fill="rgba(255,255,255,0.18)" transform="rotate(-30 19 14)"/>
+</svg>

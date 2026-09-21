@@ -1,0 +1,194 @@
+/* ==============================================================================
+   CloudGuard — Enterprise Cloud Security Control Plane Design System
+   ============================================================================== */
+
+:root {
+  /* Ambient Canvas & Surfaces */
+  --bg-app: #080b14;
+  --bg-app-radial: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, rgba(6, 182, 212, 0.06) 25%, transparent 60%),
+                    radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.05) 0%, transparent 40%),
+                    #080b14;
+
+  --bg-sidebar: rgba(11, 15, 26, 0.95);
+  --bg-header: rgba(11, 15, 26, 0.9);
+
+  /* Canonical Surface Hierarchy */
+  --surface-base: #0f141f;
+  --surface-elevated: #151c2c;
+  --surface-overlay: #1c253b;
+  --bg-surface-base: var(--surface-base);
+  --bg-surface-elevated: var(--surface-elevated);
+  --bg-surface-overlay: var(--surface-overlay);
+  --bg-surface-subtle: rgba(255, 255, 255, 0.03);
+  --bg-surface-hover: #222d46;
+  --social-bg: rgba(255, 255, 255, 0.05);
+
+  /* Backwards-compatible glass & legacy surfaces */
+  --bg-surface-glass: rgba(16, 22, 38, 0.85);
+  --bg-surface-glass-hover: rgba(22, 30, 52, 0.9);
+  --bg-surface-1: var(--surface-base);
+  --bg-surface-2: var(--surface-elevated);
+  --bg-surface-3: var(--surface-overlay);
+  --bg-input: #0c101b;
+
+  /* Borders & Dividers */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.24);
+  --border: var(--border-medium);
+  --border-critical: rgba(244, 63, 94, 0.4);
+  --border-success: rgba(16, 185, 129, 0.4);
+  --border-warning: rgba(245, 158, 11, 0.4);
+  --border-glow-indigo: rgba(99, 102, 241, 0.4);
+  --border-glow-cyan: rgba(6, 182, 212, 0.4);
+  --border-glow-rose: rgba(244, 63, 94, 0.4);
+
+  /* Accent Tokens */
+  --accent: #6366f1;
+  --accent-bg: rgba(99, 102, 241, 0.12);
+  --accent-border: rgba(99, 102, 241, 0.35);
+  --accent-indigo: #6366f1;
+  --accent-violet: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --accent-sky: #38bdf8;
+  --accent-rose: #f43f5e;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+
+  --accent-cyan-subtle: rgba(6, 182, 212, 0.12);
+  --accent-cyan-border: rgba(6, 182, 212, 0.35);
+  --accent-indigo-subtle: rgba(99, 102, 241, 0.12);
+  --accent-indigo-border: rgba(99, 102, 241, 0.35);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+  --gradient-card-hero: linear-gradient(135deg, rgba(99, 102, 241, 0.14) 0%, rgba(6, 182, 212, 0.08) 100%);
+  --gradient-card-alert: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(249, 115, 22, 0.08) 100%);
+  --gradient-card-ai: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
+  --gradient-card-safe: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+  --gradient-text-hero: linear-gradient(180deg, #ffffff 0%, #e2e8f0 70%, #94a3b8 100%);
+  --gradient-text-accent: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+
+  /* Severity Semantic Tokens */
+  --sev-critical: #f43f5e;
+  --sev-critical-bg: rgba(244, 63, 94, 0.14);
+  --sev-critical-border: rgba(244, 63, 94, 0.35);
+
+  --sev-high: #fb923c;
+  --sev-high-bg: rgba(251, 146, 60, 0.14);
+  --sev-high-border: rgba(251, 146, 60, 0.35);
+
+  --sev-medium: #fbbf24;
+  --sev-medium-bg: rgba(251, 191, 36, 0.14);
+  --sev-medium-border: rgba(251, 191, 36, 0.35);
+
+  --sev-low: #38bdf8;
+  --sev-low-bg: rgba(56, 189, 248, 0.14);
+  --sev-low-border: rgba(56, 189, 248, 0.35);
+
+  --sev-info: #94a3b8;
+  --sev-info-bg: rgba(148, 163, 184, 0.14);
+  --sev-info-border: rgba(148, 163, 184, 0.35);
+
+  /* State Colors */
+  --state-success: #10b981;
+  --state-success-bg: rgba(16, 185, 129, 0.14);
+  --state-success-border: rgba(16, 185, 129, 0.35);
+
+  --state-warning: #f59e0b;
+  --state-warning-bg: rgba(245, 158, 11, 0.14);
+
+  --state-error: #f43f5e;
+  --state-error-bg: rgba(244, 63, 94, 0.14);
+
+  --state-killswitch: #e11d48;
+  --state-killswitch-bg: rgba(225, 29, 72, 0.2);
+  --state-killswitch-border: #f43f5e;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Menlo, Consolas, monospace;
+
+  /* Text Contrast & Readability */
+  --text-primary: #ffffff;
+  --text-h: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-disabled: #64748b;
+  --text-inverse: #080b14;
+  --text-critical: #f43f5e;
+  --text-success: #10b981;
+  --text-warning: #f59e0b;
+  --text-high: #fb923c;
+
+  /* Spacing Scale (8px rhythm) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Font Sizes */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13.5px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 26px;
+
+  /* Rounded Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 18px -2px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 14px 34px -4px rgba(0, 0, 0, 0.6);
+  --shadow: var(--shadow-md);
+  --shadow-glow-indigo: 0 0 25px -4px rgba(99, 102, 241, 0.2);
+  --shadow-glow-cyan: 0 0 25px -4px rgba(6, 182, 212, 0.2);
+  --shadow-glow-rose: 0 0 25px -4px rgba(244, 63, 94, 0.2);
+}
+
+/* Global Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-app-radial);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(8, 11, 20, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+}

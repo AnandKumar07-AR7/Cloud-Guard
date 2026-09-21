@@ -1,0 +1,70 @@
+# ==============================================================================
+# CloudGuard — Git Ignore Configuration
+# ==============================================================================
+
+# Environment files and secrets
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+*.cover
+test_output.txt
+
+# Node / Frontend artifacts
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE & Editor configs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs and local databases
+logs/
+*.log
+*.sqlite3
+*.db
+local_db/
+
+# Scratch & temporary testing directories
+scratch/
+.tempmediaStorage/
+backend/scratch/

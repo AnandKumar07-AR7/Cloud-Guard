@@ -1,0 +1,129 @@
+version: "3.9"
+
+# ==============================================================================
+# CloudGuard — Hardened Production & Development Docker Compose
+# ==============================================================================
+# Security Controls Applied:
+#   - No hardcoded secret fallbacks (requires explicit JWT_SECRET_KEY & POSTGRES_PASSWORD)
+#   - security_opt: no-new-privileges:true on all containers
+#   - Linux capabilities dropped (cap_drop: [ALL])
+#   - Resource constraints: CPU and memory limits per service
+#   - Database port bound to localhost only (prevents external network exposure)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL Database Service
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudguard-postgres
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cloudguard}
+      POSTGRES_USER: ${POSTGRES_USER:-cloudguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be configured}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - cloudguard-pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudguard} -d ${POSTGRES_DB:-cloudguard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cloudguard-net
+
+  # ----------------------------------------------------------------------------
+  # Backend Service — FastAPI / CloudGuard Core Engine (Runs as non-root)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cloudguard-backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1024m
+    cpus: 1.5
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-cloudguard}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be configured}@postgres:5432/${POSTGRES_DB:-cloudguard}
+      - CLOUDGUARD_MODE=${CLOUDGUARD_MODE:-demo}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY must be configured}
+      - DEMO_ADMIN_USERNAME=${DEMO_ADMIN_USERNAME:-admin}
+      - DEMO_ADMIN_PASSWORD=${DEMO_ADMIN_PASSWORD:-}
+      - AI_PROVIDER=${AI_PROVIDER:-demo}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://localhost,https://127.0.0.1,https://localhost:443,https://127.0.0.1:443,https://localhost:3000,http://localhost:3000}
+    ports:
+      - "127.0.0.1:8000:8000"
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - cloudguard-logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cloudguard-net
+
+  # ----------------------------------------------------------------------------
+  # Frontend Service — React Obsidian Command Center
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cloudguard-frontend
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3000:80"
+    volumes:
+      - ./frontend/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--no-check-certificate", "https://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cloudguard-net
+
+volumes:
+  cloudguard-pgdata:
+    name: cloudguard-pgdata
+  cloudguard-logs:
+    name: cloudguard-logs
+
+networks:
+  cloudguard-net:
+    name: cloudguard-net
+    driver: bridge
