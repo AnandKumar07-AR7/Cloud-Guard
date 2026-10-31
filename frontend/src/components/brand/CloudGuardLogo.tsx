@@ -117,24 +117,6 @@ export const CloudGuardLogo: React.FC<CloudGuardLogoProps> = ({
       {/* Wordmark */}
       {isFull && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span
-              style={{
-                fontSize: wordmarkSize,
-                fontWeight: 800,
-                letterSpacing: '0.02em',
-                fontFamily: 'var(--font-heading, "Outfit", "Plus Jakarta Sans", sans-serif)',
-                background: 'linear-gradient(135deg, #ffffff 0%, #e0f2fe 35%, #38bdf8 70%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                lineHeight: 1.15,
-                display: 'block',
-              }}
-            >
-              CloudGuard
-            </span>
-          </div>
           <span
             style={{
               fontSize: wordmarkSize,
