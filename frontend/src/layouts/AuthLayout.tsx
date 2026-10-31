@@ -1,6 +1,6 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
-import { AegisByteLogo } from '../components/brand/CloudGuardLogo'
+import { CloudGuardLogo } from '../components/brand/CloudGuardLogo'
 
 export const AuthLayout: React.FC = () => {
   return (
@@ -17,7 +17,7 @@ export const AuthLayout: React.FC = () => {
       }}
     >
       <div style={{ marginBottom: 28 }}>
-        <AegisByteLogo variant="full" size={42} />
+        <CloudGuardLogo variant="full" size={42} />
       </div>
 
       <div style={{ width: '100%', maxWidth: 380 }}>

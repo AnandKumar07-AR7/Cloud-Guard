@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { PageBackground } from '../components/brand/PageBackground'
-import { AegisByteLogo } from '../components/brand/CloudGuardLogo'
+import { CloudGuardLogo } from '../components/brand/CloudGuardLogo'
 import {
   LayoutDashboard,
   Activity,
@@ -175,7 +175,7 @@ export const AppLayout: React.FC = () => {
           </button>
 
           <Link to="/overview" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <AegisByteLogo variant="full" size={34} />
+            <CloudGuardLogo variant="full" size={34} />
           </Link>
 
           <span

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { ApiError } from '../api/client'
-import { AegisByteLogo } from '../components/brand/CloudGuardLogo'
+import { CloudGuardLogo } from '../components/brand/CloudGuardLogo'
 
 interface LoginPageProps {
   initialMode?: 'login' | 'signup'
@@ -258,7 +258,7 @@ const BrandPanel: React.FC = () => {
       </div>
 
       {/* Logo */}
-      <AegisByteLogo variant="hero" size={62} style={{ marginBottom: 28 }} />
+      <CloudGuardLogo variant="hero" size={62} style={{ marginBottom: 28 }} />
 
       {/* Headline */}
       <h1
@@ -768,7 +768,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) =
           <div style={{ width: '100%' }}>
             {/* Mobile-only logo (hidden on desktop via class) */}
             <div className="login-mobile-logo" style={{ marginBottom: 28, textAlign: 'center' }}>
-              <AegisByteLogo variant="full" size={38} style={{ justifyContent: 'center' }} />
+              <CloudGuardLogo variant="full" size={38} style={{ justifyContent: 'center' }} />
             </div>
 
             {/* Mode switcher */}
