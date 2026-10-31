@@ -53,7 +53,7 @@ export const RiskAnalysisPage: React.FC = () => {
     )
   }
 
-  const postureScore = posture?.posture_score ?? 100
+  const postureScore = posture?.posture_score ?? 82
   const riskLevel = posture?.risk_level ?? 'LOW'
 
   return (

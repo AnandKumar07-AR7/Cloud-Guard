@@ -840,7 +840,7 @@ def test_auto_26_row_locking_prevents_duplicate_progression(client, admin_token)
                 "name": f"Policy-Concurrent-{uuid.uuid4().hex[:6]}",
                 "description": "Auto validate concurrent",
                 "enabled": True,
-                "priority": 400,
+                "priority": 999,
                 "allowed_services": ["s3"],
                 "auto_progress_validation": True,
             },

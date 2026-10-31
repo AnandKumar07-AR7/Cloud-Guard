@@ -20,8 +20,19 @@ export const authApi = {
     return api.post<TokenResponse>('/auth/register', { username, email, password, role: role || 'VIEWER' })
   },
 
+  googleLogin: async (idToken: string, awsAccountId: string): Promise<TokenResponse> => {
+    return api.post<TokenResponse>('/auth/google', {
+      id_token: idToken,
+      aws_account_id: awsAccountId,
+    })
+  },
+
   getCurrentUser: async (): Promise<User> => {
     return api.get<User>('/auth/me')
+  },
+
+  switchAccount: async (awsAccountId: string): Promise<User> => {
+    return api.post<User>('/auth/switch-account', { aws_account_id: awsAccountId })
   },
 }
 

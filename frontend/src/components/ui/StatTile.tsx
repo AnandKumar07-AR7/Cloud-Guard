@@ -81,7 +81,7 @@ export const StatTile: React.FC<StatTileProps> = ({
         transition: 'transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease',
         boxShadow: 'var(--shadow-sm)',
       }}
-      className={onClick ? 'cg-stat-tile-interactive' : ''}
+      className={onClick ? 'cg-stat-tile-interactive cg-3d-card' : 'cg-glass-3d'}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <span

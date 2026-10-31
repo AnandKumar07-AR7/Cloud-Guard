@@ -4,14 +4,20 @@ CloudGuard — Scan Routes
 POST /scans          — run a new scan
 GET  /scans          — list all scans (paginated)
 GET  /scans/{id}     — get a specific scan by ID
+
+Scan execution modes:
+  - Demo mode: Runs synchronously (fast, <1s). Returns completed scan.
+  - AWS mode:  Runs asynchronously. Returns 202 with scan_id in QUEUED status.
+               Client polls GET /scans/{id} until status is COMPLETED or FAILED.
 """
 from __future__ import annotations
 
+import threading
 from typing import Optional
 
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
-from core.database import get_db
+from core.database import get_db, SessionLocal
 
 from auth.dependencies import require_permission
 from auth.models import UserDBModel
@@ -34,7 +40,7 @@ from api.schemas import (
 from config.settings import settings
 from core.providers.demo.provider import DemoProvider
 from services.scan_models import ScanRecord, ScanStatus
-from services.scan_service import get_scan_service
+from services.scan_service import get_scan_service, ScanService
 from core.utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -93,13 +99,19 @@ def _record_to_summary(record: ScanRecord) -> ScanSummaryResponse:
 def _get_provider(request: ScanRequest):
     """Instantiate the correct provider based on settings and request."""
     if settings.is_demo_mode:
-        scenario = request.scenario or "default"
-        if scenario not in DemoProvider.available_scenarios():
-            raise InvalidScenarioError(
-                scenario=scenario,
-                available=DemoProvider.available_scenarios(),
-            )
-        return DemoProvider(scenario=scenario)
+        if not request.scenario:
+            return DemoProvider(scenario="default")
+        scenario = request.scenario
+        scenario_alias_map = {
+            "full": "default",
+            "s3_critical": "critical",
+            "iam_privilege": "critical",
+            "network_ingress": "default",
+        }
+        mapped_scenario = scenario_alias_map.get(scenario, scenario)
+        if mapped_scenario not in DemoProvider.available_scenarios():
+            raise InvalidScenarioError(request.scenario, available=DemoProvider.available_scenarios())
+        return DemoProvider(scenario=mapped_scenario)
 
     # AWS mode
     from core.providers.aws.provider import AWSProvider
@@ -108,6 +120,9 @@ def _get_provider(request: ScanRequest):
         profile=settings.aws_profile,
         access_key_id=settings.aws_access_key_id,
         secret_access_key=settings.aws_secret_access_key,
+        role_arn=settings.aws_role_arn,
+        role_session_name=settings.aws_role_session_name,
+        external_id=settings.aws_external_id,
     )
     try:
         provider.validate_connection()
@@ -115,6 +130,35 @@ def _get_provider(request: ScanRequest):
         log.warning("aws_auth_failed", error=str(exc))
         raise AWSAuthError()
     return provider
+
+
+def _run_scan_in_background(
+    scan_id: str,
+    provider,
+    regions,
+    scenario,
+    enrich_with_ai: bool,
+) -> None:
+    """
+    Background thread function: runs the full scan pipeline with its own DB session.
+
+    Uses its own SessionLocal() to avoid holding the request's DB connection
+    for the entire duration of an AWS scan (which can take 1-3 minutes).
+    """
+    db = SessionLocal()
+    try:
+        service = ScanService(db=db)
+        service.execute_scan_pipeline(
+            scan_id=scan_id,
+            provider=provider,
+            regions=regions,
+            scenario=scenario,
+            enrich_with_ai=enrich_with_ai,
+        )
+    except Exception:
+        log.error("background_scan_failed", scan_id=scan_id, exc_info=True)
+    finally:
+        db.close()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -130,11 +174,12 @@ async def run_scan(
     """
     Initiate a security scan.
 
-    **Demo mode**: uses deterministic fixtures, no AWS credentials required.
-    **AWS mode**: scans real AWS resources (read-only).
+    **Demo mode**: Runs synchronously (fast). Returns completed scan with 201.
+    **AWS mode**: Returns 202 with scan in QUEUED status. The scan runs in a
+    background thread. Poll `GET /scans/{scan_id}` for progress and results.
 
-    Returns the scan summary immediately. Use GET /findings?scan_id={id}
-    to retrieve individual findings.
+    Returns the scan summary. Use GET /findings?scan_id={id}
+    to retrieve individual findings once the scan is COMPLETED.
     """
     if request is None:
         request = ScanRequest()
@@ -142,18 +187,51 @@ async def run_scan(
     provider = _get_provider(request)
     service = get_scan_service(db)
 
-    record = service.run_scan(
+    # ── Demo mode: synchronous (fast, <1s) ────────────────────────────────
+    if settings.is_demo_mode:
+        record = service.run_scan(
+            provider=provider,
+            regions=request.regions,
+            scenario=request.scenario,
+            enrich_with_ai=request.enrich_with_ai,
+        )
+        if record.status == ScanStatus.FAILED:
+            raise ScanFailedError(
+                message=record.error_message or "Scan execution failed.",
+                request_id=record.correlation_id,
+            )
+        return _record_to_summary(record)
+
+    # ── AWS mode: async (scan runs in background thread) ──────────────────
+    # Phase 1: Create the scan record immediately and return it.
+    record = service.initiate_scan(
         provider=provider,
         regions=request.regions,
         scenario=request.scenario,
-        enrich_with_ai=request.enrich_with_ai,
     )
 
-    if record.status == ScanStatus.FAILED:
-        raise ScanFailedError(
-            message=record.error_message or "Scan execution failed.",
-            request_id=record.correlation_id,
-        )
+    # Phase 2: Launch background thread with its own DB session.
+    # Using a thread rather than FastAPI BackgroundTasks so we get a fresh
+    # DB connection and don't hold the request's connection for minutes.
+    scan_thread = threading.Thread(
+        target=_run_scan_in_background,
+        kwargs={
+            "scan_id": record.scan_id,
+            "provider": provider,
+            "regions": request.regions,
+            "scenario": request.scenario,
+            "enrich_with_ai": request.enrich_with_ai,
+        },
+        name=f"scan-{record.scan_id[:8]}",
+        daemon=True,
+    )
+    scan_thread.start()
+
+    log.info(
+        "scan_dispatched_to_background",
+        scan_id=record.scan_id,
+        thread_name=scan_thread.name,
+    )
 
     return _record_to_summary(record)
 
@@ -207,6 +285,8 @@ async def get_scan(
     Get a scan by ID.
 
     Returns the complete scan summary including risk summary and severity breakdown.
+    For AWS scans, poll this endpoint to check scan progress (status field
+    transitions: QUEUED → DISCOVERING → ANALYZING → RISK_SCORING → COMPLETED).
     Use GET /findings?scan_id={id} to retrieve individual findings.
     """
     service = get_scan_service(db)

@@ -27,6 +27,38 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class GoogleAuthRequest(BaseModel):
+    """POST /auth/google — Sign in with Google + AWS Account ID verification."""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    id_token: str = Field(min_length=1, description="Google ID token from GSI")
+    aws_account_id: str = Field(
+        min_length=12, max_length=12,
+        description="12-digit AWS Account ID linked to this Google account",
+    )
+
+    @field_validator("aws_account_id")
+    @classmethod
+    def validate_aws_account_id(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("AWS Account ID must contain only digits.")
+        return v
+
+
+class SwitchAccountRequest(BaseModel):
+    """POST /auth/switch-account"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    aws_account_id: str = Field(min_length=12, max_length=12, description="12-digit AWS Account ID")
+
+    @field_validator("aws_account_id")
+    @classmethod
+    def validate_aws_account_id(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("AWS Account ID must contain only digits.")
+        return v
+
+
 class RefreshRequest(BaseModel):
     """POST /auth/refresh"""
     model_config = ConfigDict(extra="forbid")
@@ -62,6 +94,7 @@ class UserResponse(BaseModel):
     created_at:    datetime
     updated_at:    Optional[datetime] = None
     last_login_at: Optional[datetime] = None
+    aws_account_id: Optional[str] = None
 
 
 class TokenResponse(BaseModel):

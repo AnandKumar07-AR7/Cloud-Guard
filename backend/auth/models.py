@@ -132,6 +132,10 @@ class UserDBModel(Base):
     is_active     = Column(Boolean, nullable=False, default=True)
     is_verified   = Column(Boolean, nullable=False, default=True)
 
+    # ── Google OAuth fields ────────────────────────────────────────────────────
+    google_sub     = Column(String(255), nullable=True, unique=True, index=True)
+    aws_account_id = Column(String(32),  nullable=True)
+
     created_at    = Column(DateTime(timezone=True), nullable=False, default=_now)
     updated_at    = Column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
     last_login_at = Column(DateTime(timezone=True), nullable=True)

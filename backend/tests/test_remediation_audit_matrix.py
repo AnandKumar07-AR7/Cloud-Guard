@@ -225,7 +225,13 @@ def test_REM_07_create_plan_unsupported_rule_rejected(client, analyst_headers):
 
 def test_REM_08_strategy_only_explicit_allowlisted_actions():
     """REM-08: Only explicitly allowlisted remediation actions can be generated."""
-    allowed_action_types = {"ENABLE_S3_PUBLIC_ACCESS_BLOCK", "DISABLE_SECURITY_GROUP_INGRESS"}
+    allowed_action_types = {
+        "ENABLE_S3_PUBLIC_ACCESS_BLOCK",
+        "DISABLE_SECURITY_GROUP_INGRESS",
+        "ENABLE_S3_BUCKET_ENCRYPTION",
+        "ENABLE_S3_BUCKET_VERSIONING",
+        "ENABLE_EBS_ENCRYPTION_BY_DEFAULT",
+    }
     for rule_id, strategy in STRATEGIES.items():
         assert strategy.action_type in allowed_action_types
 

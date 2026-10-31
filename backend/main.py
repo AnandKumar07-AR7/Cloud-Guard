@@ -63,7 +63,7 @@ from api.errors import (
     http_exception_handler,
     unhandled_exception_handler,
 )
-from api.routes import system, scans, findings, rules, resources, posture, remediation, ai, automation, mcp
+from api.routes import system, scans, findings, rules, resources, posture, remediation, ai, automation, mcp, accounts
 from auth import routes as auth_routes
 from config.settings import settings
 from core.utils.logging import configure_logging, get_logger
@@ -139,20 +139,27 @@ _auth_rate_limiter = _AuthRateLimiter()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    ai_source = "Gemini" if settings.has_gemini_key else ("Claude" if settings.has_anthropic_key else "Template fallback")
     log.info(
         "cloudguard_starting",
         mode=settings.cloudguard_mode.value,
         version="1.0.0-hardened",
-        ai_enabled=settings.has_anthropic_key,
+        ai_enabled=settings.has_anthropic_key or settings.has_gemini_key,
+        ai_source=ai_source,
     )
     print(f"\n{'='*60}")
-    print(f"  CloudGuard API — Hardened (Auth + RBAC + Security Controls)")
+    print(f"  AegisByte API — Hardened (Auth + RBAC + Security Controls)")
     print(f"  {settings.mode_banner()}")
-    print(f"  AI: {'Claude' if settings.has_anthropic_key else 'Template fallback'}")
+    print(f"  AI: {ai_source} ({settings.gemini_model if settings.has_gemini_key else settings.anthropic_model})")
     print(f"  Docs: http://{settings.api_host}:{settings.api_port}/docs")
     print(f"{'='*60}\n")
 
-    # ── Demo admin seeding — ONLY in demo mode ────────────────────────────────
+    # ── Startup Validation ────────────────────────────────────────────────
+    # Verify external dependencies are reachable before accepting requests.
+    # This prevents the server from starting in a broken state.
+    _validate_startup_prerequisites()
+
+    # ── Demo admin seeding — ONLY in demo mode ────────────────────────────
     # SECURITY: Never auto-seed an admin in production/AWS mode.
     # DEMO_ADMIN_PASSWORD must be explicitly set in .env for seeding to occur.
     # Production deployments must NOT set DEMO_ADMIN_PASSWORD.
@@ -232,8 +239,140 @@ async def lifespan(app: FastAPI):
             # Non-fatal — log and continue. DB might not be ready yet.
             log.warning("demo_admin_seed_failed", error=str(exc))
 
+        # Orphaned Scan Crash Recovery: reconcile any scans left in RUNNING/QUEUED from previous process termination
+        try:
+            db_reconcile = SessionLocal()
+            try:
+                from core.db_models import ScanDBModel
+                from services.scan_models import ScanStatus
+                import datetime
+                in_flight_states = [
+                    ScanStatus.QUEUED.value,
+                    ScanStatus.DISCOVERING.value,
+                    ScanStatus.ANALYZING.value,
+                    ScanStatus.RISK_SCORING.value,
+                ]
+                stale_scans = db_reconcile.query(ScanDBModel).filter(
+                    ScanDBModel.status.in_(in_flight_states)
+                ).all()
+                if stale_scans:
+                    for s in stale_scans:
+                        s.status = ScanStatus.FAILED.value
+                        s.error_message = "Scan interrupted by server restart — auto-recovered."
+                        s.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                    db_reconcile.commit()
+                    log.info("stale_scans_reconciled_on_startup", count=len(stale_scans))
+            finally:
+                db_reconcile.close()
+        except Exception as exc:
+            log.warning("stale_scan_reconciliation_skipped", error=str(exc))
+
     yield
     log.info("cloudguard_stopped")
+
+
+def _validate_startup_prerequisites() -> None:
+    """
+    Verify external dependencies are reachable at startup.
+
+    Checks:
+      1. Database connectivity (PostgreSQL or SQLite)
+      2. AWS credentials validity (only in aws mode)
+      3. Anthropic API key format (only if ai_provider=anthropic)
+      4. JWT secret key strength
+
+    Logs errors for critical issues but does NOT prevent startup in demo mode.
+    In AWS mode, credential validation failure logs a prominent warning so the
+    operator knows scans will fail.
+    """
+    import os
+
+    # ── 1. Database connectivity ──────────────────────────────────────────
+    try:
+        from sqlalchemy import text
+        from core.database import engine
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        log.info("startup_check_database_ok")
+    except Exception as exc:
+        log.error("startup_check_database_failed", error=str(exc))
+        # In production, this is fatal — but we log and let healthcheck handle it
+
+    # ── 2. AWS credentials (only in AWS mode) ─────────────────────────────
+    if settings.is_aws_mode:
+        if not settings.has_aws_credentials:
+            log.error(
+                "startup_check_aws_credentials_missing",
+                message=(
+                    "CLOUDGUARD_MODE=aws but AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY "
+                    "are not set. Scans will fail. Set credentials or switch to demo mode."
+                ),
+            )
+        elif settings.aws_access_key_id in ("your_aws_access_key_here", ""):
+            log.error(
+                "startup_check_aws_credentials_placeholder",
+                message=(
+                    "AWS_ACCESS_KEY_ID contains a placeholder value. "
+                    "Replace with real IAM credentials in .env"
+                ),
+            )
+        else:
+            try:
+                import boto3
+                session = boto3.Session(
+                    aws_access_key_id=settings.aws_access_key_id,
+                    aws_secret_access_key=settings.aws_secret_access_key,
+                    region_name=settings.aws_default_region,
+                )
+                sts = session.client("sts")
+                identity = sts.get_caller_identity()
+                log.info(
+                    "startup_check_aws_ok",
+                    account_id=identity["Account"],
+                    arn=identity.get("Arn", ""),
+                )
+            except Exception as exc:
+                log.error(
+                    "startup_check_aws_validation_failed",
+                    error=str(exc),
+                    message="AWS credentials are invalid. Scans will fail.",
+                )
+
+    # ── 3. Anthropic API key (if configured) ──────────────────────────────
+    if settings.ai_provider == "anthropic":
+        if not settings.anthropic_api_key:
+            log.warning(
+                "startup_check_anthropic_key_missing",
+                message="AI_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set. AI analysis will use template fallback.",
+            )
+        elif settings.anthropic_api_key in ("your_anthropic_api_key_here", ""):
+            log.warning(
+                "startup_check_anthropic_key_placeholder",
+                message="ANTHROPIC_API_KEY contains a placeholder value. AI analysis will fail.",
+            )
+        else:
+            log.info("startup_check_anthropic_key_configured")
+
+    # ── 4. JWT secret key strength ────────────────────────────────────────
+    is_testing = os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("TESTING") == "1"
+    if not is_testing:
+        if settings.jwt_secret_key in (
+            "CHANGE-ME-BEFORE-PRODUCTION",
+            "your_jwt_secret_here",
+            None,
+        ):
+            log.error(
+                "startup_check_jwt_secret_weak",
+                message=(
+                    "JWT_SECRET_KEY is set to a default/placeholder value. "
+                    "Generate a strong secret: python -c \"import secrets; print(secrets.token_hex(32))\""
+                ),
+            )
+        elif len(settings.jwt_secret_key) < 32:
+            log.warning(
+                "startup_check_jwt_secret_short",
+                message="JWT_SECRET_KEY is shorter than 32 characters. Consider using a longer key.",
+            )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -241,9 +380,9 @@ async def lifespan(app: FastAPI):
 # ──────────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="CloudGuard API",
+    title="AegisByte API",
     description=(
-        "AI-Powered Cloud Misconfiguration Detection and Auto-Remediation.\n\n"
+        "AegisByte — AI-Driven Cloud Security, Misconfiguration Detection, and Automated Remediation.\n\n"
         "**Hardened**: JWT Authentication + RBAC + Rate Limiting + Security Headers.\n\n"
         "**Demo Mode** — No AWS credentials required. Set `CLOUDGUARD_MODE=demo`.\n"
         "**AWS Mode** — Set `CLOUDGUARD_MODE=aws` with valid AWS credentials.\n\n"
@@ -409,3 +548,4 @@ app.include_router(remediation.router)
 app.include_router(ai.router)
 app.include_router(automation.router)
 app.include_router(mcp.router)
+app.include_router(accounts.router)

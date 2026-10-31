@@ -1,0 +1,624 @@
+/* ==============================================================================
+   CloudGuard — 3D Animation & Dynamic Effects System
+   Full-spectrum 3D animations, micro-interactions, and visual dynamics
+   ============================================================================== */
+
+/* ─── 3D Card Tilt on Hover ─────────────────────────────────── */
+.cg-3d-card {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.45s cubic-bezier(0.03, 0.98, 0.52, 0.99),
+              box-shadow 0.45s cubic-bezier(0.03, 0.98, 0.52, 0.99),
+              border-color 0.3s ease;
+  will-change: transform;
+}
+
+.cg-3d-card:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-3deg) translateZ(8px) scale(1.015);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(99, 102, 241, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border-color: var(--border-medium) !important;
+}
+
+/* ─── 3D Card Shine Overlay ─────────────────────────────────── */
+.cg-3d-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(255, 255, 255, 0.015) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cg-3d-card:hover::before {
+  opacity: 1;
+}
+
+/* ─── Floating Y-axis Animation ─────────────────────────────── */
+@keyframes cg-float-y {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes cg-float-y-subtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+.cg-float {
+  animation: cg-float-y 4s ease-in-out infinite;
+}
+
+.cg-float-slow {
+  animation: cg-float-y 6s ease-in-out infinite;
+}
+
+.cg-float-subtle {
+  animation: cg-float-y-subtle 5s ease-in-out infinite;
+}
+
+/* ─── Page Content Entrance ─────────────────────────────────── */
+@keyframes cg-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes cg-page-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.cg-page-enter {
+  animation: cg-page-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cg-page-enter-left {
+  animation: cg-page-enter-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Staggered Card Entrance (children auto-stagger) ────────── */
+@keyframes cg-card-stagger-in {
+  from {
+    opacity: 0;
+    transform: perspective(800px) rotateX(-4deg) translateY(28px) scale(0.96);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(800px) rotateX(0) translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.cg-stagger-container > * {
+  animation: cg-card-stagger-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.cg-stagger-container > *:nth-child(1) { animation-delay: 0.05s; }
+.cg-stagger-container > *:nth-child(2) { animation-delay: 0.12s; }
+.cg-stagger-container > *:nth-child(3) { animation-delay: 0.19s; }
+.cg-stagger-container > *:nth-child(4) { animation-delay: 0.26s; }
+.cg-stagger-container > *:nth-child(5) { animation-delay: 0.33s; }
+.cg-stagger-container > *:nth-child(6) { animation-delay: 0.40s; }
+.cg-stagger-container > *:nth-child(7) { animation-delay: 0.47s; }
+.cg-stagger-container > *:nth-child(8) { animation-delay: 0.54s; }
+
+/* ─── Stat Counter Animate In ────────────────────────────────── */
+@keyframes cg-count-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.85);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.cg-count-in {
+  animation: cg-count-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Glow Pulse Effect ─────────────────────────────────────── */
+@keyframes cg-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.15); }
+}
+
+@keyframes cg-glow-pulse-cyan {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(6, 182, 212, 0.15); }
+}
+
+@keyframes cg-glow-pulse-emerald {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.15); }
+}
+
+.cg-glow-indigo { animation: cg-glow-pulse 3s ease-in-out infinite; }
+.cg-glow-cyan { animation: cg-glow-pulse-cyan 3s ease-in-out infinite; }
+.cg-glow-emerald { animation: cg-glow-pulse-emerald 3s ease-in-out infinite; }
+
+/* ─── 3D Rotate-In for Icons ────────────────────────────────── */
+@keyframes cg-icon-3d-in {
+  from {
+    opacity: 0;
+    transform: perspective(500px) rotateY(-90deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(500px) rotateY(0deg) scale(1);
+  }
+}
+
+.cg-icon-3d {
+  animation: cg-icon-3d-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Shimmer / Scan-line Effect ────────────────────────────── */
+@keyframes cg-shimmer {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(250%) skewX(-15deg); }
+}
+
+.cg-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.cg-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 62%
+  );
+  animation: cg-shimmer 5s ease-in-out infinite 2s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ─── Interactive Stat Tile 3D ───────────────────────────────── */
+.cg-stat-tile-interactive {
+  transform-style: preserve-3d;
+  perspective: 800px;
+}
+
+.cg-stat-tile-interactive:hover {
+  transform: perspective(800px) rotateX(3deg) rotateY(-2deg) translateZ(6px) translateY(-3px);
+  box-shadow:
+    var(--shadow-md),
+    0 0 20px rgba(99, 102, 241, 0.08);
+  border-color: var(--border-medium) !important;
+}
+
+/* ─── Sidebar NavItem 3D Hover ───────────────────────────────── */
+@keyframes cg-nav-glow {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.12); }
+}
+
+.cg-nav-3d {
+  transform-style: preserve-3d;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.cg-nav-3d:hover {
+  transform: perspective(600px) rotateY(-2deg) translateX(3px) translateZ(4px);
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.cg-nav-3d.active {
+  animation: cg-nav-glow 3s ease-in-out infinite;
+}
+
+/* ─── 3D Glassmorphism Cards ─────────────────────────────────── */
+.cg-glass-3d {
+  background: rgba(15, 20, 31, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transform-style: preserve-3d;
+  transition: all 0.4s cubic-bezier(0.03, 0.98, 0.52, 0.99);
+}
+
+.cg-glass-3d:hover {
+  background: rgba(15, 20, 31, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: perspective(1000px) rotateX(1.5deg) rotateY(-2deg) translateZ(6px);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(99, 102, 241, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Particle Field Background ──────────────────────────────── */
+@keyframes cg-particle-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  25% { transform: translate(40px, -30px) scale(1.2); opacity: 0.8; }
+  50% { transform: translate(-10px, -50px) scale(0.9); opacity: 0.5; }
+  75% { transform: translate(-30px, -20px) scale(1.1); opacity: 0.7; }
+}
+
+@keyframes cg-particle-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  33% { transform: translate(-50px, 20px) scale(1.3); opacity: 0.7; }
+  66% { transform: translate(30px, -40px) scale(0.8); opacity: 0.45; }
+}
+
+@keyframes cg-particle-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  40% { transform: translate(20px, 50px) scale(1.4); opacity: 0.85; }
+  80% { transform: translate(-40px, 10px) scale(0.7); opacity: 0.35; }
+}
+
+/* ─── Morphing Gradient Blob ─────────────────────────────────── */
+@keyframes cg-morph-blob {
+  0%, 100% {
+    border-radius: 42% 58% 70% 30% / 45% 55% 45% 55%;
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(90deg) scale(1.05);
+  }
+  50% {
+    border-radius: 30% 70% 55% 45% / 35% 65% 35% 65%;
+    transform: rotate(180deg) scale(0.95);
+  }
+  75% {
+    border-radius: 55% 45% 40% 60% / 70% 30% 60% 40%;
+    transform: rotate(270deg) scale(1.03);
+  }
+}
+
+.cg-morph-blob {
+  animation: cg-morph-blob 20s ease-in-out infinite;
+}
+
+/* ─── Orbiting Ring Effect ───────────────────────────────────── */
+@keyframes cg-orbit {
+  from { transform: rotateX(65deg) rotateZ(0deg); }
+  to   { transform: rotateX(65deg) rotateZ(360deg); }
+}
+
+@keyframes cg-orbit-reverse {
+  from { transform: rotateX(75deg) rotateZ(360deg); }
+  to   { transform: rotateX(75deg) rotateZ(0deg); }
+}
+
+/* ─── Breathing Border ───────────────────────────────────────── */
+@keyframes cg-breathe-border {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 rgba(99, 102, 241, 0);
+  }
+  50% {
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+  }
+}
+
+.cg-breathe {
+  animation: cg-breathe-border 4s ease-in-out infinite;
+}
+
+/* ─── Data Stream Lines ──────────────────────────────────────── */
+@keyframes cg-stream-flow {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(400%); opacity: 0; }
+}
+
+.cg-data-stream {
+  position: relative;
+  overflow: hidden;
+}
+
+.cg-data-stream::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 25%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+  animation: cg-stream-flow 6s linear infinite;
+}
+
+/* ─── Holographic Badge ──────────────────────────────────────── */
+@keyframes cg-holo-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(15deg);
+  }
+}
+
+.cg-holo-badge {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.25) 0%,
+    rgba(6, 182, 212, 0.2) 25%,
+    rgba(139, 92, 246, 0.25) 50%,
+    rgba(244, 114, 182, 0.2) 75%,
+    rgba(99, 102, 241, 0.25) 100%
+  );
+  background-size: 200% 200%;
+  animation: cg-holo-shift 5s ease-in-out infinite;
+}
+
+/* ─── Button 3D Press Effect ─────────────────────────────────── */
+.cg-btn-3d {
+  transform-style: preserve-3d;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.cg-btn-3d:hover:not(:disabled) {
+  transform: perspective(600px) translateZ(4px) translateY(-2px);
+  box-shadow: 
+    0 14px 28px rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+.cg-btn-3d:active:not(:disabled) {
+  transform: perspective(600px) translateZ(-2px) translateY(1px) scale(0.985);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition-duration: 0.08s;
+}
+
+/* ─── Table Row 3D Hover ─────────────────────────────────────── */
+.cg-table tr {
+  transition: all 0.2s ease;
+}
+
+.cg-table tr:hover td {
+  background-color: var(--bg-surface-hover);
+  transform: translateX(2px);
+}
+
+/* ─── Animated Border Gradient (for hero cards) ──────────────── */
+@keyframes cg-border-rotate {
+  from { --angle: 0deg; }
+  to   { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.cg-animated-border {
+  position: relative;
+  border: none !important;
+}
+
+.cg-animated-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle),
+    rgba(99, 102, 241, 0.5),
+    rgba(6, 182, 212, 0.3),
+    rgba(139, 92, 246, 0.4),
+    rgba(99, 102, 241, 0.5)
+  );
+  z-index: -2;
+  animation: cg-border-rotate 8s linear infinite;
+}
+
+.cg-animated-border::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: var(--surface-base);
+  z-index: -1;
+}
+
+/* ─── Loading Skeleton Wave ──────────────────────────────────── */
+@keyframes cg-skeleton-wave {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.cg-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: cg-skeleton-wave 2s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Typing Cursor Blink ────────────────────────────────────── */
+@keyframes cg-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cg-cursor {
+  animation: cg-cursor-blink 1s step-end infinite;
+}
+
+/* ─── 3D Shield Rotation (Login) ─────────────────────────────── */
+@keyframes cg-shield-3d {
+  0%, 100% {
+    transform: perspective(800px) rotateY(-5deg) rotateX(5deg);
+    filter: drop-shadow(0 8px 24px rgba(99, 102, 241, 0.35));
+  }
+  50% {
+    transform: perspective(800px) rotateY(5deg) rotateX(-5deg);
+    filter: drop-shadow(0 12px 32px rgba(6, 182, 212, 0.35));
+  }
+}
+
+.cg-shield-3d {
+  animation: cg-shield-3d 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+/* ─── Ripple Click Effect ────────────────────────────────────── */
+@keyframes cg-ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ─── Status Dot Animations ──────────────────────────────────── */
+@keyframes cg-status-healthy {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 8px 3px rgba(16, 185, 129, 0.25);
+    transform: scale(1.2);
+  }
+}
+
+@keyframes cg-status-alert {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 8px 3px rgba(244, 63, 94, 0.3);
+    transform: scale(1.3);
+  }
+}
+
+.cg-status-healthy {
+  animation: cg-status-healthy 2.5s ease-in-out infinite;
+}
+
+.cg-status-alert {
+  animation: cg-status-alert 1.5s ease-in-out infinite;
+}
+
+/* ─── Header & Footer Bar Glow ───────────────────────────────── */
+@keyframes cg-header-shine {
+  0% { left: -30%; }
+  100% { left: 130%; }
+}
+
+.cg-header-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.cg-header-glow::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), rgba(6, 182, 212, 0.3), transparent);
+  animation: cg-header-shine 8s linear infinite;
+}
+
+/* ─── Tooltip 3D Pop ─────────────────────────────────────────── */
+@keyframes cg-tooltip-pop {
+  from {
+    opacity: 0;
+    transform: perspective(600px) translateY(8px) rotateX(-8deg) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(600px) translateY(0) rotateX(0) scale(1);
+  }
+}
+
+.cg-tooltip-pop {
+  animation: cg-tooltip-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Accessibility: Reduced Motion ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cg-3d-card,
+  .cg-glass-3d,
+  .cg-nav-3d,
+  .cg-stat-tile-interactive,
+  .cg-btn-3d {
+    transition-duration: 0.01ms !important;
+  }
+
+  .cg-float,
+  .cg-float-slow,
+  .cg-float-subtle,
+  .cg-morph-blob,
+  .cg-shimmer::after,
+  .cg-data-stream::before,
+  .cg-holo-badge,
+  .cg-breathe,
+  .cg-glow-indigo,
+  .cg-glow-cyan,
+  .cg-glow-emerald,
+  .cg-shield-3d,
+  .cg-status-healthy,
+  .cg-status-alert,
+  .cg-header-glow::after,
+  .cg-animated-border::before,
+  .cg-nav-3d.active {
+    animation: none !important;
+  }
+
+  .cg-3d-card:hover,
+  .cg-glass-3d:hover,
+  .cg-nav-3d:hover {
+    transform: none !important;
+  }
+
+  .cg-page-enter,
+  .cg-page-enter-left,
+  .cg-stagger-container > * {
+    animation-duration: 0.01ms !important;
+  }
+}

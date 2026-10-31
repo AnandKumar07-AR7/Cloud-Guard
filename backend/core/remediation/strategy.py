@@ -61,7 +61,14 @@ class RemediationStrategy:
 
     def _build_parameters(self, ctx: RemediationStrategyContext) -> Dict:
         """Extract needed parameters from context."""
-        if self.rule_id in ("s3-public-access-block-disabled", "S3-001"):
+        if self.rule_id in (
+            "s3-public-access-block-disabled",
+            "S3-001",
+            "S3-004",
+            "s3-bucket-encryption-disabled",
+            "S3-005",
+            "s3-bucket-versioning-disabled",
+        ):
             # resource_id is typically arn:aws:s3:::bucket-name or bucket-name
             bucket_name = ctx.resource_id.split(":::")[-1]
             if "/" in bucket_name:
@@ -72,6 +79,47 @@ class RemediationStrategy:
             # resource_id might be sg-xxx or arn:aws:ec2:...:security-group/sg-xxx
             group_id = ctx.resource_id.split("/")[-1]
             return {"group_id": group_id}
+
+        elif self.rule_id in ("EC2-005", "ebs-encryption-by-default", "EBS-001"):
+            return {"region": ctx.region or "us-east-1"}
+
+        elif self.rule_id == "IAM-003":
+            role_name = ctx.resource_id.split("/")[-1]
+            return {
+                "role_name": role_name,
+                "role_arn": ctx.resource_id,
+                "policy_to_detach": "arn:aws:iam::aws:policy/AdministratorAccess",
+                "replacement_policy": "arn:aws:iam::aws:policy/ReadOnlyAccess",
+                "before_state": {
+                    "managed_policy": "AdministratorAccess (OVERLY PERMISSIVE)",
+                    "risk": "CRITICAL — Full admin takeover possible",
+                },
+                "after_state": {
+                    "managed_policy": "Least-privilege / ReadOnlyAccess",
+                    "risk": "LOW — Principle of Least Privilege enforced",
+                },
+            }
+
+        elif self.rule_id == "LAM-004":
+            # resource_id is typically arn:aws:lambda:region:account:function:name
+            function_name = ctx.resource_id.split(":")[-1]
+            if not function_name:
+                function_name = ctx.resource_id.split("/")[-1]
+            return {
+                "function_name": function_name,
+                "function_arn": ctx.resource_id,
+                "region": ctx.region,
+                "account_id": ctx.account_id,
+                "policy_to_detach": "arn:aws:iam::aws:policy/AdministratorAccess",
+                "before_state": {
+                    "execution_role": "AdministratorAccess (OVERLY PERMISSIVE)",
+                    "risk": "CRITICAL — full AWS privilege escalation possible",
+                },
+                "after_state": {
+                    "execution_role": "Least-privilege policy (specific actions only)",
+                    "risk": "LOW — restricted to function's required permissions",
+                },
+            }
 
         return {}
 
@@ -93,17 +141,59 @@ STRATEGIES: Dict[str, RemediationStrategy] = {
         safety=RemediationSafety.MEDIUM_RISK,
         description_template="Enable AWS S3 Public Access Block on bucket '{bucket_name}'.",
     ),
+    "S3-004": RemediationStrategy(
+        rule_id="S3-004",
+        action_type="ENABLE_S3_BUCKET_ENCRYPTION",
+        safety=RemediationSafety.LOW_RISK,
+        description_template="Enable AES-256 (SSE-S3) default server-side encryption on bucket '{bucket_name}'.",
+    ),
+    "s3-bucket-encryption-disabled": RemediationStrategy(
+        rule_id="s3-bucket-encryption-disabled",
+        action_type="ENABLE_S3_BUCKET_ENCRYPTION",
+        safety=RemediationSafety.LOW_RISK,
+        description_template="Enable AES-256 (SSE-S3) default server-side encryption on bucket '{bucket_name}'.",
+    ),
+    "S3-005": RemediationStrategy(
+        rule_id="S3-005",
+        action_type="ENABLE_S3_BUCKET_VERSIONING",
+        safety=RemediationSafety.LOW_RISK,
+        description_template="Enable bucket versioning on S3 bucket '{bucket_name}'.",
+    ),
+    "s3-bucket-versioning-disabled": RemediationStrategy(
+        rule_id="s3-bucket-versioning-disabled",
+        action_type="ENABLE_S3_BUCKET_VERSIONING",
+        safety=RemediationSafety.LOW_RISK,
+        description_template="Enable bucket versioning on S3 bucket '{bucket_name}'.",
+    ),
     "SG-001": RemediationStrategy(
         rule_id="SG-001",
         action_type="DISABLE_SECURITY_GROUP_INGRESS",
         safety=RemediationSafety.MEDIUM_RISK,
         description_template="Remove open 0.0.0.0/0 SSH ingress rule from Security Group '{group_id}'.",
     ),
+    "IAM-003": RemediationStrategy(
+        rule_id="IAM-003",
+        action_type="DETACH_ROLE_ADMIN_POLICY",
+        safety=RemediationSafety.MEDIUM_RISK,
+        description_template="Detach AdministratorAccess from IAM Role '{role_name}' and enforce least privilege.",
+    ),
     "ec2-sg-open-ssh": RemediationStrategy(
         rule_id="ec2-sg-open-ssh",
         action_type="DISABLE_SECURITY_GROUP_INGRESS",
         safety=RemediationSafety.MEDIUM_RISK,
         description_template="Remove open 0.0.0.0/0 SSH ingress rule from Security Group '{group_id}'.",
+    ),
+    "ebs-encryption-by-default": RemediationStrategy(
+        rule_id="ebs-encryption-by-default",
+        action_type="ENABLE_EBS_ENCRYPTION_BY_DEFAULT",
+        safety=RemediationSafety.LOW_RISK,
+        description_template="Enable EBS volume default encryption in region '{region}'.",
+    ),
+    "EBS-001": RemediationStrategy(
+        rule_id="EBS-001",
+        action_type="ENABLE_EBS_ENCRYPTION_BY_DEFAULT",
+        safety=RemediationSafety.LOW_RISK,
+        description_template="Enable EBS volume default encryption in region '{region}'.",
     ),
 }
 

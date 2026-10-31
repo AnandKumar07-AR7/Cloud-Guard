@@ -8,6 +8,8 @@ import {
   Wrench,
   Globe,
   History,
+  CheckCircle,
+  Clock,
 } from 'lucide-react'
 import { findingsApi } from '../../api/findingsApi'
 import { SeverityBadge, StatusBadge } from '../../components/Badge'
@@ -67,6 +69,9 @@ export const FindingDetailPage: React.FC = () => {
     )
   }
 
+  const isResolved = finding.status === 'RESOLVED'
+  const isVerifying = finding.status === 'VERIFICATION_PENDING'
+
   return (
     <div className="cg-page-container">
       {/* Top Bar Navigation & Actions */}
@@ -108,15 +113,109 @@ export const FindingDetailPage: React.FC = () => {
           </Link>
 
           <Button
-            variant="primary"
+            variant={isResolved ? 'outline' : 'primary'}
             size="sm"
             onClick={() => navigate(`/remediation?finding_id=${finding.finding_id}`)}
           >
-            <Wrench size={14} />
-            Remediate
+            {isResolved ? (
+              <>
+                <CheckCircle size={14} style={{ color: '#34d399' }} />
+                Remediated (View Plan)
+              </>
+            ) : isVerifying ? (
+              <>
+                <Clock size={14} style={{ color: '#fbbf24' }} />
+                Verify Fix
+              </>
+            ) : (
+              <>
+                <Wrench size={14} />
+                Remediate
+              </>
+            )}
           </Button>
         </div>
       </div>
+
+      {/* Resolution Banner */}
+      {isResolved && (
+        <Card
+          variant="default"
+          style={{
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2))',
+          }}
+        >
+          <CardBody
+            style={{
+              padding: '12px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckCircle size={18} style={{ color: '#34d399', flexShrink: 0 }} />
+              <div>
+                <span style={{ color: '#ecfdf5', fontSize: '13px', fontWeight: 600 }}>
+                  This finding has been successfully remediated and verified.
+                </span>
+                <span style={{ color: '#a7f3d0', fontSize: '12px', marginLeft: 8 }}>
+                  Status: <strong style={{ color: '#34d399' }}>RESOLVED</strong>
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/remediation?finding_id=${finding.finding_id}`)}
+            >
+              Inspect Remediation Audit
+            </Button>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Verification Pending Banner */}
+      {isVerifying && (
+        <Card
+          variant="default"
+          style={{
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            background: 'rgba(245, 158, 11, 0.08)',
+          }}
+        >
+          <CardBody
+            style={{
+              padding: '12px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Clock size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
+              <div>
+                <span style={{ color: '#fef3c7', fontSize: '13px', fontWeight: 600 }}>
+                  Remediation executed on cloud resource.
+                </span>
+                <span style={{ color: '#fde68a', fontSize: '12px', marginLeft: 8 }}>
+                  Verification scan pending confirmation.
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate(`/remediation?finding_id=${finding.finding_id}`)}
+            >
+              Run Verification Scan
+            </Button>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Overview Card */}
       <Card variant="elevated">

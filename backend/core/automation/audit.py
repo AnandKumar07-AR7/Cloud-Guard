@@ -150,5 +150,5 @@ def log_automation_event(
         )
 
         session.add(audit_entry)
-        session.flush()
+        session.commit()
         return audit_entry

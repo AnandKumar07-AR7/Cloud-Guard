@@ -74,6 +74,15 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
             dbapi_connection.create_function(
                 "NOW", 0, lambda: datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             )
+        if hasattr(dbapi_connection, "cursor"):
+            try:
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                cursor.execute("PRAGMA synchronous=NORMAL;")
+                cursor.execute("PRAGMA busy_timeout=30000;")
+                cursor.close()
+            except Exception:
+                pass
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

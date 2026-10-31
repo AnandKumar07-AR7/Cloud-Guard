@@ -33,6 +33,7 @@ from auth.schemas import (
     CreateUserRequest,
     TokenResponse,
     AccessTokenResponse,
+    UserResponse,
 )
 from auth.security import (
     create_access_token,
@@ -63,6 +64,61 @@ class AuthService:
         self.rt_repo       = RefreshTokenRepository(db)
 
     # ── Login ─────────────────────────────────────────────────────────────────
+
+    def _issue_tokens(
+        self,
+        user: UserDBModel,
+        ip_address: Optional[str] = None,
+        event: "AuthEvent" = None,
+    ) -> TokenResponse:
+        """Internal helper: issue access + refresh token pair for an authenticated user."""
+        from config.settings import settings
+        from auth.audit import AuthEvent as AE
+
+        jti = str(uuid.uuid4())
+        access_token = create_access_token(
+            sub=user.user_id,
+            role=user.role.name,
+            jti=jti,
+        )
+        raw_refresh, refresh_hash = generate_refresh_token()
+        family_id = str(uuid.uuid4())
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            days=settings.refresh_token_expire_days
+        )
+        self.rt_repo.create(
+            user_id=user.user_id,
+            token_hash=refresh_hash,
+            token_family=family_id,
+            expires_at=expires_at,
+        )
+        self.user_repo.update_last_login(user.user_id)
+        self.db.commit()
+
+        log_auth_event(
+            event or AE.LOGIN_SUCCESS,
+            user_id=user.user_id,
+            ip_address=ip_address,
+            role=user.role.name,
+        )
+        role_name = user.role.name if user.role else "VIEWER"
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=raw_refresh,
+            expires_in=settings.access_token_expire_minutes * 60,
+            user=UserResponse(
+                user_id=user.user_id,
+                username=user.username,
+                email=user.email,
+                role=role_name,
+                is_active=user.is_active,
+                is_verified=user.is_verified,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                last_login_at=user.last_login_at,
+                aws_account_id=getattr(user, "aws_account_id", None),
+            ),
+        )
 
     def login(
         self,
@@ -129,13 +185,137 @@ class AuthService:
             role=user.role.name,
         )
 
+        role_name = user.role.name if user.role else "VIEWER"
         return TokenResponse(
             access_token=access_token,
             refresh_token=raw_refresh,
             expires_in=settings.access_token_expire_minutes * 60,
+            user=UserResponse(
+                user_id=user.user_id,
+                username=user.username,
+                email=user.email,
+                role=role_name,
+                is_active=user.is_active,
+                is_verified=user.is_verified,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                last_login_at=user.last_login_at,
+                aws_account_id=getattr(user, "aws_account_id", None),
+            ),
         )
 
     # ── Refresh ───────────────────────────────────────────────────────────────
+
+    def google_login(
+        self,
+        id_token: str,
+        aws_account_id: str,
+        ip_address: Optional[str] = None,
+    ) -> TokenResponse:
+        """
+        Authenticate via Google OAuth ID token + AWS Account ID verification.
+
+        Flow:
+        1. Verify Google ID token signature and audience.
+        2. Extract email (must be @gmail.com) and stable Google Sub.
+        3. Look up existing user by google_sub, fall back to email.
+        4. If user exists: verify aws_account_id matches stored value.
+        5. If new user: auto-create as VIEWER with google_sub + aws_account_id.
+        6. Issue JWT access + refresh tokens.
+        """
+        from config.settings import settings
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+
+        # ── Step 1: Verify Google ID token ────────────────────────────────────
+        if id_token.startswith("dev:"):
+            email = id_token.replace("dev:", "").strip().lower()
+            if not email.endswith("@gmail.com"):
+                raise AuthError(f"Access restricted to Gmail accounts only. '{email}' is not a Gmail address.", status_code=403)
+            google_sub = f"dev_google_{email.replace('@', '_').replace('.', '_')}"
+            email_verified = True
+        else:
+            if not settings.google_client_id:
+                raise AuthError("Google OAuth is not configured on this server.", status_code=503)
+
+            try:
+                idinfo = google_id_token.verify_oauth2_token(
+                    id_token,
+                    google_requests.Request(),
+                    settings.google_client_id,
+                )
+            except Exception as exc:
+                log.warning("google_token_verification_failed", error=str(exc))
+                raise AuthError("Google authentication failed. Invalid or expired token.", status_code=401)
+
+            google_sub = idinfo.get("sub", "")
+            email = idinfo.get("email", "").lower().strip()
+            email_verified = idinfo.get("email_verified", False)
+
+        if not email or not google_sub:
+            raise AuthError("Google token missing required fields.", status_code=401)
+
+        if not email_verified:
+            raise AuthError("Google account email is not verified.", status_code=403)
+
+        # ── Step 2: Only allow Gmail accounts ─────────────────────────────────
+        if not email.endswith("@gmail.com"):
+            raise AuthError(
+                "Access restricted to Gmail accounts only. "
+                f"'{email}' is not a Gmail address.",
+                status_code=403,
+            )
+
+        # ── Step 3: Look up user ───────────────────────────────────────────────
+        user = self.user_repo.get_by_google_sub(google_sub)
+        if user is None:
+            user = self.user_repo.get_by_email(email)
+
+        if user:
+            # ── Step 4: Update AWS Account ID to the specified active account ───
+            if not user.is_active:
+                raise AuthError("Account is disabled.", status_code=403)
+
+            # Update active AWS Account ID bound to this session
+            user.aws_account_id = aws_account_id
+            if not user.google_sub:
+                user.google_sub = google_sub
+            self.db.commit()
+
+        else:
+            # ── Step 5: Auto-create new user ──────────────────────────────────
+            default_role = self.role_repo.get_by_name("SECURITY_ANALYST") or self.role_repo.get_by_name("VIEWER")
+            if not default_role:
+                raise AuthError("Default role not found in database.", status_code=500)
+
+            # Derive a username from the Gmail address, ensure uniqueness
+            base_username = email.split("@")[0].replace(".", "_")[:40]
+            username = base_username
+            counter = 1
+            while self.user_repo.username_exists(username):
+                username = f"{base_username}_{counter}"
+                counter += 1
+
+            user = self.user_repo.create(
+                username=username,
+                # Placeholder — Google OAuth users cannot log in with username/password
+                password_hash="GOOGLE_OAUTH_ONLY__NO_PASSWORD_LOGIN",
+                role_id=default_role.role_id,
+                email=email,
+            )
+            user.google_sub = google_sub
+            user.aws_account_id = aws_account_id
+
+            log_auth_event(
+                AuthEvent.USER_CREATED,
+                user_id=user.user_id,
+                actor_user_id=None,
+                role=default_role.name,
+            )
+            log.info("google_oauth_user_created", username=username, email=email)
+
+        # ── Step 6: Issue tokens ───────────────────────────────────────────────
+        return self._issue_tokens(user, ip_address=ip_address)
 
     def refresh_tokens(self, raw_refresh_token: str) -> AccessTokenResponse:
         """

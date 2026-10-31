@@ -150,19 +150,30 @@ async def list_findings(
 
     from services.repositories import FindingRepository, ScanRepository
     
-    if scan_id:
+    effective_scan_id = scan_id
+    if effective_scan_id == "all":
+        effective_scan_id = None
+    elif not effective_scan_id:
+        from services.scan_service import get_scan_service
+        from services.scan_models import ScanStatus
+        scan_svc = get_scan_service(db)
+        latest_scans = scan_svc.list_scans(limit=1, offset=0, status=ScanStatus.COMPLETED)
+        if latest_scans:
+            effective_scan_id = latest_scans[0].scan_id
+
+    if effective_scan_id:
         scan_repo = ScanRepository(db)
-        if not scan_repo.get(scan_id):
+        if not scan_repo.get(effective_scan_id):
             raise CloudGuardAPIError(
                 status_code=404,
                 error_code=ErrorCode.NOT_FOUND,
-                message=f"Scan {scan_id} not found"
+                message=f"Scan {effective_scan_id} not found"
             )
 
     repo = FindingRepository(db)
     
     filters = {
-        "scan_id": scan_id,
+        "scan_id": effective_scan_id,
         "severity": sev_filter,
         "status": status_filter,
         "service": service.lower() if service else None,

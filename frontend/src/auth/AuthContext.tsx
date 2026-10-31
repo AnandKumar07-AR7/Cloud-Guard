@@ -7,6 +7,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
+  googleLogin: (idToken: string, awsAccountId: string) => Promise<void>
   signup: (username: string, email: string, password: string, role?: string) => Promise<void>
   logout: () => Promise<void>
   hasPermission: (permission: string) => boolean
@@ -126,6 +127,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  const googleLogin = async (idToken: string, awsAccountId: string): Promise<void> => {
+    const res = await authApi.googleLogin(idToken, awsAccountId)
+    localStorage.setItem('cloudguard_access_token', res.access_token)
+    localStorage.setItem('cloudguard_refresh_token', res.refresh_token)
+    sessionStorage.setItem('cloudguard_tab_active', 'true')
+    if (res.user) {
+      setUser(res.user)
+    } else {
+      const currentUser = await authApi.getCurrentUser()
+      setUser(currentUser)
+    }
+  }
+
   const signup = async (username: string, email: string, password: string, role?: string): Promise<void> => {
     const res = await authApi.register(username, email, password, role)
     localStorage.setItem('cloudguard_access_token', res.access_token)
@@ -171,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         login,
+        googleLogin,
         signup,
         logout,
         hasPermission,

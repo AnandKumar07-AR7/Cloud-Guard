@@ -17,7 +17,7 @@ interface RequestOptions extends RequestInit {
 }
 
 class ApiClient {
-  private baseUrl = ''
+  private baseUrl = (import.meta.env.VITE_API_URL as string || '').replace(/\/$/, '')
   private isRefreshing = false
   private refreshSubscribers: ((token: string) => void)[] = []
 
@@ -53,11 +53,9 @@ class ApiClient {
       headers.set('Content-Type', 'application/json')
     }
 
-    const isTestEnv =
-      (typeof window !== 'undefined' && ((window as any).__VITEST__ || typeof (window as any).vi !== 'undefined')) ||
-      import.meta.env?.MODE === 'test'
-    const isTabActive = sessionStorage.getItem('cloudguard_tab_active') === 'true' || isTestEnv
-    const token = isTabActive ? localStorage.getItem('cloudguard_access_token') : null
+    // Always attach the token if one exists — the tab_active check lives only
+    // in AuthContext for restoring session state on page load, not here.
+    const token = localStorage.getItem('cloudguard_access_token')
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`)
     }

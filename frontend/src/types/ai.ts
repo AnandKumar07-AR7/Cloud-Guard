@@ -5,6 +5,9 @@ export interface AIAgentRun {
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | string
   agent_version: string
   agent_name?: string
+  model_name?: string
+  tokens_consumed?: number
+  reasoning_text?: string
   prompt_tokens?: number
   completion_tokens?: number
   error_message?: string
@@ -24,8 +27,9 @@ export interface AIRecommendation {
   recommendation_id: string
   run_id: string
   finding_id: string
-  confidence: 'HIGH' | 'MEDIUM' | 'LOW' | string
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW' | number | string
   recommended_action: string
+  title?: string
   action_summary?: string
   description?: string
   rationale: string

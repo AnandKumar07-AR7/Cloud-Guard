@@ -34,13 +34,41 @@ def _get_all_statements(resource: CloudResource) -> List[Dict[str, Any]]:
 
     # Inline policies
     for policy in resource.get_config("inline_policies", []):
+        if not isinstance(policy, dict):
+            continue
         doc = policy.get("document", {})
-        all_statements.extend(doc.get("Statement", []))
+        if isinstance(doc, str):
+            try:
+                import json
+                doc = json.loads(doc)
+            except Exception:
+                doc = {}
+        if isinstance(doc, dict):
+            stmts = doc.get("Statement", [])
+            if isinstance(stmts, dict):
+                stmts = [stmts]
+            elif not isinstance(stmts, list):
+                stmts = []
+            all_statements.extend([s for s in stmts if isinstance(s, dict)])
 
     # Managed policies (attached)
     for policy in resource.get_config("managed_policies", []):
+        if not isinstance(policy, dict):
+            continue
         doc = policy.get("document", {})
-        all_statements.extend(doc.get("Statement", []))
+        if isinstance(doc, str):
+            try:
+                import json
+                doc = json.loads(doc)
+            except Exception:
+                doc = {}
+        if isinstance(doc, dict):
+            stmts = doc.get("Statement", [])
+            if isinstance(stmts, dict):
+                stmts = [stmts]
+            elif not isinstance(stmts, list):
+                stmts = []
+            all_statements.extend([s for s in stmts if isinstance(s, dict)])
 
     return all_statements
 

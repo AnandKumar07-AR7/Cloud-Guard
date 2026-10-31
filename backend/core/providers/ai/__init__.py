@@ -6,6 +6,7 @@ from typing import Optional
 from core.providers.ai.base import AIProvider, AIProviderError, AIProviderRawResponse, AIToolRequest
 from core.providers.ai.demo import DemoAIProvider
 from core.providers.ai.anthropic import AnthropicAIProvider
+from core.providers.ai.gemini import GeminiAIProvider
 from config.settings import settings
 
 
@@ -28,9 +29,14 @@ def get_ai_provider(
         mdl = model or settings.anthropic_model
         return AnthropicAIProvider(api_key=key, model=mdl)
 
+    elif name == "gemini":
+        key = api_key or settings.gemini_api_key
+        mdl = model or settings.gemini_model
+        return GeminiAIProvider(api_key=key, model=mdl)
+
     else:
         raise ValueError(
-            f"Invalid AI provider '{name}'. Only 'demo' and 'anthropic' are allowed."
+            f"Invalid AI provider '{name}'. Only 'demo', 'anthropic', and 'gemini' are allowed."
         )
 
 
@@ -41,5 +47,6 @@ __all__ = [
     "AIToolRequest",
     "DemoAIProvider",
     "AnthropicAIProvider",
+    "GeminiAIProvider",
     "get_ai_provider",
 ]

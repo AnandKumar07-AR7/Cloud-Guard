@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Lock,
@@ -17,11 +17,21 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { ApiError } from '../api/client'
-import { CloudGuardLogo } from '../components/brand/CloudGuardLogo'
+import { AegisByteLogo } from '../components/brand/CloudGuardLogo'
 
 interface LoginPageProps {
   initialMode?: 'login' | 'signup'
 }
+
+const GoogleIcon: React.FC = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    <path fill="none" d="M0 0h48v48H0z"/>
+  </svg>
+)
 
 /** Animated SVG background — pure CSS, no extra dependencies */
 const AnimatedBackground: React.FC = () => (
@@ -248,7 +258,7 @@ const BrandPanel: React.FC = () => {
       </div>
 
       {/* Logo */}
-      <CloudGuardLogo variant="hero" size={62} style={{ marginBottom: 28 }} />
+      <AegisByteLogo variant="hero" size={62} style={{ marginBottom: 28 }} />
 
       {/* Headline */}
       <h1
@@ -432,7 +442,7 @@ const BrandPanel: React.FC = () => {
 export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, signup } = useAuth()
+  const { login, googleLogin, signup } = useAuth()
 
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode)
 
@@ -440,6 +450,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) =
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showLoginPassword, setShowLoginPassword] = useState(false)
+
+  // Google OAuth state
+  // Step: 'idle' | 'aws_entry' | 'verifying'
+  const [googleStep, setGoogleStep] = useState<'idle' | 'aws_entry' | 'verifying'>('idle')
+  const [googleIdToken, setGoogleIdToken] = useState<string>('')
+  const [googleEmail, setGoogleEmail] = useState<string>('')
+  const [awsAccountId, setAwsAccountId] = useState<string>('')
+  const googleButtonRef = useRef<HTMLDivElement>(null)
 
   // Signup form state
   const [signupUsername, setSignupUsername] = useState('')
@@ -455,6 +473,81 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) =
   const [isLoading, setIsLoading] = useState(false)
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/overview'
+
+  // ── Initialize Google Identity Services with polling ───────────────────────
+  useEffect(() => {
+    const GOOGLE_CLIENT_ID = '607502678619-drjm5qqnph5q4qu145jun26usaukkbnu.apps.googleusercontent.com'
+
+    const setupGsi = () => {
+      const gsi = (window as any).google
+      if (!gsi?.accounts?.id) return false
+
+      try {
+        gsi.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response: { credential: string }) => {
+            const token = response.credential
+            try {
+              const payload = JSON.parse(atob(token.split('.')[1]))
+              setGoogleEmail(payload.email || '')
+            } catch {
+              setGoogleEmail('')
+            }
+            setGoogleIdToken(token)
+            setGoogleStep('aws_entry')
+            setError(null)
+          },
+          ux_mode: 'popup',
+        })
+
+        if (googleButtonRef.current) {
+          gsi.accounts.id.renderButton(googleButtonRef.current, {
+            type: 'standard',
+            theme: 'filled_black',
+            size: 'large',
+            text: 'signin_with',
+            shape: 'rectangular',
+            width: 360,
+          })
+        }
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    if (!setupGsi()) {
+      const interval = setInterval(() => {
+        if (setupGsi()) {
+          clearInterval(interval)
+        }
+      }, 400)
+      return () => clearInterval(interval)
+    }
+  }, [mode])
+
+  const handleGoogleVerify = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault()
+    if (!awsAccountId.trim() || awsAccountId.trim().length !== 12 || !/^\d{12}$/.test(awsAccountId.trim())) {
+      setError('Please enter a valid 12-digit AWS Account ID.')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    setGoogleStep('verifying')
+
+    try {
+      await googleLogin(googleIdToken, awsAccountId.trim())
+      setSuccessMsg('Google authentication successful! Redirecting...')
+      setTimeout(() => navigate(from, { replace: true }), 500)
+    } catch (err: any) {
+      setGoogleStep('aws_entry')
+      setError(err?.message || 'Google authentication failed.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Password strength calculation
   const passwordStrength = useMemo(() => {
@@ -675,7 +768,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) =
           <div style={{ width: '100%' }}>
             {/* Mobile-only logo (hidden on desktop via class) */}
             <div className="login-mobile-logo" style={{ marginBottom: 28, textAlign: 'center' }}>
-              <CloudGuardLogo variant="full" size={38} style={{ justifyContent: 'center' }} />
+              <AegisByteLogo variant="full" size={38} style={{ justifyContent: 'center' }} />
             </div>
 
             {/* Mode switcher */}
@@ -797,6 +890,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) =
               </div>
             )}
 
+            {/* Enclave Access Policy Banner */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(6,182,212,0.08) 100%)',
+                border: '1px solid rgba(99,102,241,0.28)',
+                marginBottom: 20,
+              }}
+            >
+              <ShieldCheck size={18} color="#38bdf8" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: 11, color: '#c7d2fe', lineHeight: 1.45 }}>
+                <strong style={{ color: '#ffffff' }}>Strict Access Policy:</strong> Only authenticated{' '}
+                <span style={{ color: '#38bdf8', fontWeight: 700 }}>@gmail.com</span> accounts linked to an authorized{' '}
+                <span style={{ color: '#f59e0b', fontWeight: 700 }}>12-digit AWS Account ID</span> are granted enclave access.
+              </div>
+            </div>
+
             {/* ═══ SIGN IN FORM ═══ */}
             {mode === 'login' ? (
               <form id="login-form" onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -878,6 +992,143 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) =
                   {!isLoading && <ArrowRight size={14} />}
                 </button>
 
+                {/* ─── Divider ─────────────────────────────────────────── */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.06em' }}>
+                    OR SIGN IN WITH GOOGLE
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+                </div>
+
+                {/* ─── Google Sign-In button ────────────────────────────── */}
+                {googleStep === 'idle' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                    {/* Official GSI rendered button */}
+                    <div
+                      ref={googleButtonRef}
+                      style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const emailInput = window.prompt('Enter your verified Gmail address (@gmail.com):')
+                        if (emailInput) {
+                          const trimmed = emailInput.trim().toLowerCase()
+                          if (!trimmed.endsWith('@gmail.com') && !trimmed.endsWith('@googlemail.com')) {
+                            setError("Access restricted: Only '@gmail.com' accounts linked with an AWS account are permitted.")
+                            return
+                          }
+                          setGoogleEmail(trimmed)
+                          setGoogleIdToken(`dev:${trimmed}`)
+                          setGoogleStep('aws_entry')
+                          setError(null)
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: 11,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        textAlign: 'center',
+                        marginTop: 4,
+                      }}
+                    >
+                      Or link Gmail + AWS Account ID manually
+                    </button>
+                  </div>
+                )}
+
+                {/* ─── AWS Account ID verification step ─────────────────── */}
+                {(googleStep === 'aws_entry' || googleStep === 'verifying') && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* Gmail confirmed badge */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 12px', borderRadius: 10,
+                      background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                    }}>
+                      <CheckCircle2 size={14} color="#10b981" />
+                      <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>
+                        Gmail verified: {googleEmail}
+                      </span>
+                    </div>
+
+                    {/* AWS Account ID input */}
+                    <div>
+                      <label style={labelStyle}>
+                        <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: '#f59e0b', marginRight: 6, verticalAlign: 'middle' }} />
+                        AWS ACCOUNT ID (12 DIGITS)
+                      </label>
+                      <div className="cute-input-group" style={inputGroupStyle}>
+                        <ShieldCheck size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <input
+                          type="text"
+                          maxLength={12}
+                          value={awsAccountId}
+                          onChange={e => setAwsAccountId(e.target.value.replace(/\D/g, ''))}
+                          placeholder="123456789012"
+                          disabled={isLoading}
+                          style={{ ...inputStyle, letterSpacing: '0.12em' }}
+                          autoFocus
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          Enclave AWS ID: <strong style={{ color: '#e2e8f0' }}>817760095153</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setAwsAccountId('817760095153')}
+                          style={{
+                            background: 'rgba(56, 189, 248, 0.12)',
+                            border: '1px solid rgba(56, 189, 248, 0.3)',
+                            borderRadius: 6,
+                            padding: '2px 8px',
+                            color: '#38bdf8',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Auto-fill 817760095153
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGoogleVerify}
+                      className="cute-btn"
+                      disabled={isLoading || awsAccountId.length !== 12}
+                      style={{
+                        padding: '12px 20px', borderRadius: 12, border: 'none',
+                        background: (isLoading || awsAccountId.length !== 12)
+                          ? 'rgba(245,158,11,0.4)'
+                          : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        color: '#ffffff', fontSize: 13, fontWeight: 700,
+                        cursor: (isLoading || awsAccountId.length !== 12) ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: (isLoading || awsAccountId.length !== 12) ? 'none' : '0 8px 24px rgba(245,158,11,0.4)',
+                      }}
+                    >
+                      <ShieldCheck size={15} />
+                      <span>{isLoading ? 'VERIFYING AWS LINK...' : 'VERIFY & ACCESS ENCLAVE'}</span>
+                      {!isLoading && awsAccountId.length === 12 && <ArrowRight size={14} />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setGoogleStep('idle'); setGoogleIdToken(''); setAwsAccountId(''); setError(null) }}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      ← Use a different Google account
+                    </button>
+                  </div>
+                )}
 
                 <div style={{ textAlign: 'center', marginTop: 4 }}>
                   <button

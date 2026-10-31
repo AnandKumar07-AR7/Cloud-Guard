@@ -29,4 +29,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Production: 4 workers for concurrent request handling.
+# Each Uvicorn worker is an independent process with its own event loop.
+# Scale workers based on CPU cores: 2 * num_cores + 1 is the standard formula.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

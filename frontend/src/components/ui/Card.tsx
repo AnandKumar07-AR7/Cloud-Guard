@@ -41,7 +41,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`cg-card ${className}`}
+      className={`cg-card ${interactive ? 'cg-3d-card cg-glass-3d' : ''} ${className}`}
       style={{
         background: getBg(),
         border: getBorder(),

@@ -109,12 +109,33 @@ class Settings(BaseSettings):
         description="Comma-separated list of AWS regions to scan. Empty = default region only.",
     )
     aws_profile: Optional[str] = Field(default=None)
+    aws_role_arn: Optional[str] = Field(
+        default=None,
+        description="IAM Target Role ARN to assume via AWS STS for temporary credentials.",
+    )
+    aws_role_session_name: str = Field(
+        default="CloudGuardAuditSession",
+        description="Session name used when assuming role via STS.",
+    )
+    aws_external_id: Optional[str] = Field(
+        default=None,
+        description="External ID used for cross-account STS AssumeRole.",
+    )
 
-    # ── AI (Phase 8) ──────────────────────────────────────────────────────────
-    ai_provider: str = Field(default="demo", description="AI provider: 'demo' or 'anthropic'")
+    # ── AI (Phase 8 & Gemini Integration) ────────────────────────────────────
+    ai_provider: str = Field(default="demo", description="AI provider: 'demo', 'anthropic', or 'gemini'")
     anthropic_api_key: Optional[str] = Field(default=None)
     anthropic_model: str = Field(default="claude-sonnet-4-20250514")
     anthropic_max_tokens: int = Field(default=2048)
+
+    gemini_api_key: Optional[str] = Field(default=None)
+    gemini_model: str = Field(default="gemini-3.8-flash")
+
+    # ── Google OAuth ──────────────────────────────────────────────────────────
+    google_client_id: Optional[str] = Field(
+        default=None,
+        description="Google OAuth 2.0 Client ID for Sign-in with Google.",
+    )
 
     # Server-side limits
     max_ai_context_bytes: int = Field(default=32768, description="Max prompt context size in bytes")
@@ -128,8 +149,8 @@ class Settings(BaseSettings):
     @classmethod
     def validate_ai_provider(cls, v: str) -> str:
         val = (v or "").strip().lower()
-        if val not in ("demo", "anthropic"):
-            raise ValueError(f"Invalid AI provider '{v}'. Only 'demo' and 'anthropic' are allowed.")
+        if val not in ("demo", "anthropic", "gemini"):
+            raise ValueError(f"Invalid AI provider '{v}'. Only 'demo', 'anthropic', and 'gemini' are allowed.")
         return val
 
     # ── CORS (configurable per environment) ─────────────────────────────────
@@ -228,9 +249,18 @@ class Settings(BaseSettings):
         return bool(self.anthropic_api_key)
 
     @property
+    def has_gemini_key(self) -> bool:
+        """True when a Google Gemini API key is configured."""
+        return bool(self.gemini_api_key)
+
+    @property
     def has_aws_credentials(self) -> bool:
-        """True when explicit AWS access key credentials are configured."""
-        return bool(self.aws_access_key_id and self.aws_secret_access_key)
+        """True when explicit AWS credentials or STS Role ARN are configured."""
+        return bool(
+            (self.aws_access_key_id and self.aws_secret_access_key)
+            or self.aws_role_arn
+            or self.aws_profile
+        )
 
     def mode_banner(self) -> str:
         """Human-readable mode banner for startup logs."""

@@ -6,6 +6,10 @@ import type {
 } from '../types/remediation'
 
 export const remediationApi = {
+  listPlans: async (params?: { limit?: number; offset?: number; state?: string }): Promise<RemediationPlan[]> => {
+    return api.get<RemediationPlan[]>('/api/v1/remediations/plans', { params })
+  },
+
   createPlan: async (findingId: string): Promise<RemediationPlan> => {
     return api.post<RemediationPlan>(`/api/v1/remediations/plans?finding_id=${encodeURIComponent(findingId)}`)
   },

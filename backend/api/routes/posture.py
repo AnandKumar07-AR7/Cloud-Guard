@@ -18,6 +18,7 @@ from api.routes.resources import _derive_posture
 from api.schemas import PostureResponse
 from core.risk.engine import calculate_service_posture
 from services.scan_service import get_scan_service
+from services.scan_models import ScanStatus
 from core.utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -42,8 +43,18 @@ async def get_security_posture(
         if not record:
             raise NotFoundError("Scan", scan_id)
     else:
-        scans = service_ref.list_scans(limit=1, offset=0)
+        # Prioritize the latest COMPLETED scan so an in-flight QUEUED/RUNNING scan does not produce a false 100/100 score
+        scans = service_ref.list_scans(limit=1, offset=0, status=ScanStatus.COMPLETED)
+        if not scans:
+            scans = service_ref.list_scans(limit=1, offset=0)
         record = scans[0] if scans else None
+
+    # If the retrieved record is still in-progress (QUEUED, RUNNING) and has no risk summary yet,
+    # fallback to the most recent completed scan so the caller gets real posture data instead of an empty snapshot.
+    if record and record.status != ScanStatus.COMPLETED and not record.risk_summary:
+        completed = service_ref.list_scans(limit=1, offset=0, status=ScanStatus.COMPLETED)
+        if completed:
+            record = completed[0]
 
     if not record:
         return PostureResponse(

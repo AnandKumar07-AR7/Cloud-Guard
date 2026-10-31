@@ -1,6 +1,6 @@
-# CloudGuard
+# AegisByte
 
-**AI-Powered Cloud Misconfiguration Detection, Risk Quantification, and Policy-Governed Auto-Remediation System**
+**AI-Driven Cloud Security, Misconfiguration Detection, Risk Quantification, and Policy-Governed Auto-Remediation System**
 
 [![Backend Tests](https://img.shields.io/badge/Backend%20Tests-778%2F778%20PASS-brightgreen)](#testing)
 [![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-63%2F63%20PASS-brightgreen)](#testing)
@@ -11,7 +11,7 @@
 ---
 
 ## Overview
-CloudGuard is an enterprise-grade cloud security posture management (CSPM) and governed auto-remediation platform. It continuously inventories multi-service cloud infrastructure, detects complex misconfigurations through deterministic security rules, quantifies real-world risk, delivers contextual intelligence via an AI Security Analyst, and executes safe, verifiable, and tamper-evident remediations under strict human and policy governance.
+AegisByte is an enterprise-grade cloud security posture management (CSPM) and governed auto-remediation platform. It continuously inventories multi-service cloud infrastructure, detects complex misconfigurations through deterministic security rules, quantifies real-world risk, delivers contextual intelligence via an AI Security Analyst, and executes safe, verifiable, and tamper-evident remediations under strict human and policy governance.
 
 ---
 

@@ -70,7 +70,7 @@ class TestModeEndpoint:
 
     def test_has_ai_source(self):
         r = client.get("/mode")
-        assert r.json()["ai_source"] in ("claude", "template")
+        assert r.json()["ai_source"] in ("claude", "template", "gemini")
 
     def test_demo_mode_has_scenarios(self):
         r = client.get("/mode")

@@ -43,6 +43,7 @@ export interface User {
   created_at: string
   updated_at?: string
   last_login_at?: string
+  aws_account_id?: string
 }
 
 export interface TokenResponse {

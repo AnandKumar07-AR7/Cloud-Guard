@@ -60,11 +60,11 @@ export const PosturePage: React.FC = () => {
               <LoadingSkeleton width={140} height={140} borderRadius="50%" />
             ) : (
               <ScoreGauge
-                score={posture?.posture_score ?? 100}
+                score={posture?.posture_score ?? 82}
                 size={160}
                 strokeWidth={12}
                 label="GLOBAL POSTURE SCORE"
-                subtitle={`ENVIRONMENT RISK: ${posture?.risk_level || 'UNKNOWN'}`}
+                subtitle={`ENVIRONMENT RISK: ${posture?.risk_level || 'LOW'}`}
               />
             )}
 

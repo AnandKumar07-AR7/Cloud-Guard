@@ -5,6 +5,9 @@ import {
   Play,
   RotateCw,
   ChevronRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react'
 import { scansApi } from '../../api/scansApi'
 import { SeverityBadge } from '../../components/Badge'
@@ -22,6 +25,8 @@ export const ScansPage: React.FC = () => {
   const queryClient = useQueryClient()
   const [isRunModalOpen, setIsRunModalOpen] = useState(false)
   const [selectedScan, setSelectedScan] = useState<ScanSummary | null>(null)
+  const [scanError, setScanError] = useState<string | null>(null)
+  const [activeScanId, setActiveScanId] = useState<string | null>(null)
 
   // Form state for Run Scan modal
   const [scenario, setScenario] = useState('full')
@@ -36,13 +41,25 @@ export const ScansPage: React.FC = () => {
     mutationFn: () =>
       scansApi.createScan({
         scenario,
-        ai_enrichment: aiEnrichment,
+        enrich_with_ai: aiEnrichment,  // matches backend ScanRequest field name
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setScanError(null)
+      setActiveScanId(data.scan_id)
+      setIsRunModalOpen(false)
       queryClient.invalidateQueries({ queryKey: ['scans'] })
       queryClient.invalidateQueries({ queryKey: ['findings'] })
       queryClient.invalidateQueries({ queryKey: ['posture'] })
-      setIsRunModalOpen(false)
+      // Auto-refresh list after 4s for AWS async scans
+      setTimeout(() => {
+        refetch()
+        setActiveScanId(null)
+      }, 4000)
+    },
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : 'Failed to start scan. Please try again.'
+      setScanError(message)
     },
   })
 
@@ -77,6 +94,46 @@ export const ScansPage: React.FC = () => {
           </div>
         }
       />
+
+      {/* Scan in-progress banner */}
+      {activeScanId && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          padding: '10px 16px',
+          background: 'rgba(6,182,212,0.08)',
+          border: '1px solid rgba(6,182,212,0.3)',
+          borderRadius: 'var(--radius-sm)',
+          marginBottom: 'var(--space-3)',
+        }}>
+          <Loader2 size={16} className="spin" style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+          <span style={{ fontSize: '13px', color: 'var(--text-high)' }}>
+            Scan <span className="font-mono text-cyan" style={{ fontSize: '12px' }}>{activeScanId}</span> has been queued and is running in the background.
+          </span>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {scanError && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          padding: '10px 16px',
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: 'var(--radius-sm)',
+          marginBottom: 'var(--space-3)',
+        }}>
+          <AlertCircle size={16} style={{ color: 'var(--text-critical)', flexShrink: 0 }} />
+          <span style={{ fontSize: '13px', color: 'var(--text-critical)', flex: 1 }}>{scanError}</span>
+          <button
+            onClick={() => setScanError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}
+          >×</button>
+        </div>
+      )}
 
       {/* Scans Table Card */}
       <Card variant="elevated">

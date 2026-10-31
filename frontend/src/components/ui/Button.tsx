@@ -82,6 +82,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
+      className={`cg-btn-3d ${props.className || ''}`}
       disabled={disabled || isLoading}
       style={{
         ...getStyles(),

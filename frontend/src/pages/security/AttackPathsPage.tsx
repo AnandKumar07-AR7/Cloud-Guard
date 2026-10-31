@@ -45,7 +45,7 @@ export const AttackPathsPage: React.FC = () => {
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           <strong style={{ color: 'var(--text-high)' }}>Deterministic Architectural Boundary: </strong>
           Graph-based lateral movement traversal is not exposed by an independent backend API.
-          CloudGuard enforces zero-fabrication: below are the truthful ingress exposure points derived from verified
+          AegisByte enforces zero-fabrication: below are the truthful ingress exposure points derived from verified
           internet-facing findings.
         </div>
       </div>

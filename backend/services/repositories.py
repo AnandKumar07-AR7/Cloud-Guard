@@ -363,7 +363,7 @@ class FindingRepository:
         if internet_exposed is not None:
             stmt = stmt.where(FindingDBModel.internet_exposed == internet_exposed)
             
-        stmt = stmt.order_by(FindingDBModel.risk_score.desc(), FindingDBModel.finding_id.asc())
+        stmt = stmt.order_by(FindingDBModel.last_detected_at.desc(), FindingDBModel.risk_score.desc(), FindingDBModel.finding_id.asc())
         stmt = stmt.offset(offset).limit(limit)
         
         models = self.db.execute(stmt).scalars().all()

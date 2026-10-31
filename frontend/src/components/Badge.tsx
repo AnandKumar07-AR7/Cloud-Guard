@@ -133,7 +133,7 @@ export const StatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' }> = ({ 
 
   if (['COMPLETED', 'RESOLVED', 'VERIFIED_FIXED', 'APPROVED', 'HEALTHY', 'SECURE'].includes(s)) {
     variant = 'success'
-  } else if (['RUNNING', 'ANALYZING', 'DISCOVERING', 'EXECUTING', 'PENDING_APPROVAL'].includes(s)) {
+  } else if (['RUNNING', 'ANALYZING', 'DISCOVERING', 'EXECUTING', 'PENDING_APPROVAL', 'VERIFYING', 'VERIFICATION_PENDING', 'REMEDIATING', 'REMEDIATION_PLANNED', 'AWAITING_APPROVAL'].includes(s)) {
     variant = 'cyan'
   } else if (['FAILED', 'CRITICAL', 'EXECUTION_FAILED', 'VERIFICATION_FAILED', 'UNHEALTHY'].includes(s)) {
     variant = 'critical'

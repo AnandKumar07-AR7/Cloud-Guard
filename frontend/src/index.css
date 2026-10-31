@@ -1,4 +1,5 @@
 @import './theme/tokens.css';
+@import './theme/animations.css';
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -142,6 +143,7 @@ input:focus, select:focus, textarea:focus {
 
 .cg-table tr:hover td {
   background-color: var(--bg-surface-hover);
+  transition: all 0.2s ease;
 }
 
 /* Bento Card / Standard Card */
@@ -153,12 +155,15 @@ input:focus, select:focus, textarea:focus {
   padding: 20px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.3s ease, box-shadow 0.4s ease, transform 0.4s cubic-bezier(0.03, 0.98, 0.52, 0.99);
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .bento-card:hover {
   border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), 0 0 25px rgba(99, 102, 241, 0.06);
+  transform: perspective(1000px) rotateX(1.5deg) rotateY(-2deg) translateZ(6px) translateY(-2px);
 }
 
 /* Micro-animations */

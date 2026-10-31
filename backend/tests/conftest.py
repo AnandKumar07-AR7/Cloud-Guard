@@ -24,13 +24,13 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+os.environ.setdefault("CLOUDGUARD_MODE", "demo")
+os.environ["AI_PROVIDER"] = "demo"
+
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Set JWT_SECRET_KEY before any auth imports — test-only stable value.
-# NEVER use this value outside of pytest.
-os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-not-for-production-DO-NOT-USE")
+os.environ["AI_PROVIDER"] = "demo"
 
 # If DATABASE_URL points to PostgreSQL but the server is not reachable,
 # fall back to SQLite for seamless test execution without requiring Docker/Postgres.
@@ -55,6 +55,14 @@ elif db_url.startswith("postgres"):
         s.close()
     except Exception:
         os.environ["DATABASE_URL"] = "sqlite:///test_cloudguard.db"
+
+from config.settings import settings
+settings.ai_provider = "demo"
+settings.database_url = os.environ["DATABASE_URL"]
+
+# Set JWT_SECRET_KEY before any auth imports — test-only stable value.
+# NEVER use this value outside of pytest.
+os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-not-for-production-DO-NOT-USE")
 
 # Ensure backend directory is always on the path for test imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

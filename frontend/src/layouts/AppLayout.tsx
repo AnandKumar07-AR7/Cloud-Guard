@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { PageBackground } from '../components/brand/PageBackground'
-import { CloudGuardLogo } from '../components/brand/CloudGuardLogo'
+import { AegisByteLogo } from '../components/brand/CloudGuardLogo'
 import {
   LayoutDashboard,
   Activity,
@@ -28,8 +28,11 @@ import {
   Sparkles,
   Menu,
   X,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
+import { authApi } from '../api/authApi'
 import { automationApi } from '../api/automationApi'
 import { systemApi } from '../api/systemApi'
 import { mcpApi } from '../api/mcpApi'
@@ -42,6 +45,7 @@ export const AppLayout: React.FC = () => {
   const { user, logout, hasRole } = useAuth()
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [killSwitch, setKillSwitch] = useState<KillSwitchStatus>({ enabled: false, active: false })
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [mcpServerCount, setMcpServerCount] = useState<number>(3)
@@ -171,7 +175,7 @@ export const AppLayout: React.FC = () => {
           </button>
 
           <Link to="/overview" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <CloudGuardLogo variant="full" size={34} />
+            <AegisByteLogo variant="full" size={34} />
           </Link>
 
           <span
@@ -198,26 +202,44 @@ export const AppLayout: React.FC = () => {
                 backgroundColor: '#06b6d4',
               }}
             />
-            {health?.mode && health.mode.toLowerCase() !== 'demo' ? `MODE: ${health.mode.toUpperCase()}` : 'MODE: ISOLATED ENCLAVE'}
+            {health?.mode === 'aws' ? 'LIVE AWS CLOUD' : health?.mode ? health.mode.toUpperCase() : 'DEMO MODE'}
           </span>
 
-          <span
+          <button
+            type="button"
+            onClick={async () => {
+              const current = user?.aws_account_id || '371700247056'
+              const newAcc = window.prompt('Enter 12-digit AWS Account ID to switch active context:', current)
+              if (newAcc && newAcc.trim().length === 12 && /^\d{12}$/.test(newAcc.trim())) {
+                try {
+                  await authApi.switchAccount(newAcc.trim())
+                  window.location.reload()
+                } catch (e: any) {
+                  alert(e?.message || 'Failed to switch AWS Account')
+                }
+              } else if (newAcc) {
+                alert('Invalid AWS Account ID: Must be exactly 12 numeric digits.')
+              }
+            }}
+            title="Click to switch active AWS Account context"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
               padding: '3px 8px',
               borderRadius: 6,
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              color: 'var(--text-muted)',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              color: '#38bdf8',
               fontSize: 11,
               fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+              fontWeight: 600,
             }}
           >
-            <Radio size={11} className="text-muted" />
-            AWS US-EAST-1
-          </span>
+            <Radio size={11} className="text-cyan" />
+            {user?.aws_account_id ? `AWS: ${user.aws_account_id}` : 'AWS: 817760095153'}
+          </button>
         </div>
 
         {/* Center Search Command Palette Trigger */}
@@ -248,7 +270,7 @@ export const AppLayout: React.FC = () => {
         >
           <Search size={14} className="text-cyan" />
           <span style={{ flex: 1, textAlign: 'left', fontSize: 12 }}>
-            Search security rules, findings, assets...
+            Search dashboard, issues, fixes...
           </span>
           <kbd
             style={{
@@ -297,7 +319,7 @@ export const AppLayout: React.FC = () => {
             }}
           >
             <Power size={13} style={{ color: killSwitch.active ? '#f43f5e' : '#10b981' }} />
-            <span>KILL SWITCH: {killSwitch.active ? 'HALTED' : 'ARMED'}</span>
+            <span>AUTO-FIX: {killSwitch.active ? 'PAUSED' : 'ACTIVE'}</span>
           </button>
 
           {/* User Profile Chip */}
@@ -407,45 +429,80 @@ export const AppLayout: React.FC = () => {
           }}
         >
           <div>
-            <NavSection label="OPERATIONAL ENCLAVE">
-              <NavItem to="/overview" icon={<LayoutDashboard size={15} />} label="Command Enclave" color="#818cf8" />
-              <NavItem to="/posture" icon={<TrendingUp size={15} />} label="Security Posture" color="#38bdf8" />
-              <NavItem to="/activity" icon={<Activity size={15} />} label="Live Activity" color="#22d3ee" />
+            {/* 4 CORE PRIMARY TABS */}
+            <NavSection label="MAIN NAVIGATION">
+              <NavItem
+                to="/overview"
+                icon={<LayoutDashboard size={17} />}
+                label="Dashboard"
+                subtitle="Overview & Health"
+                color="#818cf8"
+                onClick={() => setIsMobileNavOpen(false)}
+              />
+              <NavItem
+                to="/scans"
+                icon={<Scan size={17} />}
+                label="Scans"
+                subtitle="Run & Track Cloud Scans"
+                color="#06b6d4"
+                onClick={() => setIsMobileNavOpen(false)}
+              />
+              <NavItem
+                to="/findings"
+                icon={<AlertTriangle size={17} />}
+                label="Issues"
+                subtitle="Cloud Misconfigurations"
+                color="#fb7185"
+                onClick={() => setIsMobileNavOpen(false)}
+              />
+              <NavItem
+                to="/remediation"
+                icon={<Wrench size={17} />}
+                label="Fixes"
+                subtitle="Auto-Remediation & Plans"
+                color="#34d399"
+                onClick={() => setIsMobileNavOpen(false)}
+              />
             </NavSection>
 
-            <NavSection label="ASSET DISCOVERY">
-              <NavItem to="/assets" icon={<Layers size={15} />} label="Asset Explorer" color="#a78bfa" />
-              <NavItem to="/accounts" icon={<Cloud size={15} />} label="Cloud Accounts" color="#60a5fa" />
-            </NavSection>
+            {/* EXPANDABLE MORE TOOLS (ADVANCED) */}
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((prev) => !prev)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '7px 10px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: 8,
+                  color: 'var(--text-muted)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {showAdvanced ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                  <span>{showAdvanced ? 'Hide Advanced' : 'More Tools'}</span>
+                </span>
+                <span style={{ fontSize: 10, opacity: 0.6 }}>{showAdvanced ? '' : 'AI, Compliance'}</span>
+              </button>
 
-            <NavSection label="SECURITY & THREATS">
-              <NavItem to="/findings" icon={<AlertTriangle size={15} />} label="Threat Findings" color="#fb7185" />
-              <NavItem to="/rules" icon={<BookOpen size={15} />} label="Detection Rules" color="#f59e0b" />
-              <NavItem to="/risk" icon={<TrendingUp size={15} />} label="Risk Analysis" color="#f97316" />
-            </NavSection>
-
-            <NavSection label="INTELLIGENCE & AI">
-              <NavItem to="/ai-analyst" icon={<BrainCircuit size={15} />} label="AI Analyst" color="#c084fc" />
-              <NavItem to="/agent-orchestrator" icon={<Bot size={15} />} label="Agent Orchestrator" color="#818cf8" />
-              <NavItem to="/agent-runs" icon={<PlaySquare size={15} />} label="Agent Runs" color="#38bdf8" />
-            </NavSection>
-
-            <NavSection label="AUTO-REMEDIATION">
-              <NavItem to="/remediation" icon={<Wrench size={15} />} label="Remediation Center" color="#34d399" />
-              <NavItem to="/approvals" icon={<CheckSquare size={15} />} label="Approval Queue" color="#fbbf24" />
-            </NavSection>
-
-            <NavSection label="COMPLIANCE & OPS">
-              <NavItem to="/compliance" icon={<CheckCircle2 size={15} />} label="Compliance (CIS)" color="#10b981" />
-              <NavItem to="/scans" icon={<Scan size={15} />} label="Scan Engine" color="#06b6d4" />
-              <NavItem to="/audit" icon={<FileText size={15} />} label="SHA-256 Audit Log" color="#94a3b8" />
-            </NavSection>
-
-            <NavSection label="SYSTEM CONFIG">
-              <NavItem to="/mcp" icon={<Cpu size={15} />} label="MCP Protocol" color="#f472b6" />
-              <NavItem to="/policies" icon={<Sliders size={15} />} label="Policy Governance" color="#cbd5e1" />
-              <NavItem to="/settings" icon={<Settings size={15} />} label="Settings" color="#94a3b8" />
-            </NavSection>
+              {showAdvanced && (
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
+                  <NavItem to="/ai-analyst" icon={<BrainCircuit size={15} />} label="AI Assistant" subtitle="Ask security questions" color="#c084fc" onClick={() => setIsMobileNavOpen(false)} />
+                  <NavItem to="/posture" icon={<TrendingUp size={15} />} label="Security Posture" subtitle="Score trends" color="#38bdf8" onClick={() => setIsMobileNavOpen(false)} />
+                  <NavItem to="/compliance" icon={<CheckCircle2 size={15} />} label="Compliance (CIS)" subtitle="Industry standards" color="#10b981" onClick={() => setIsMobileNavOpen(false)} />
+                  <NavItem to="/assets" icon={<Layers size={15} />} label="Cloud Assets" subtitle="Raw inventory" color="#a78bfa" onClick={() => setIsMobileNavOpen(false)} />
+                  <NavItem to="/settings" icon={<Settings size={15} />} label="Settings" subtitle="System config" color="#94a3b8" onClick={() => setIsMobileNavOpen(false)} />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Bottom Sidebar Status Card */}
@@ -460,10 +517,10 @@ export const AppLayout: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <Sparkles size={14} style={{ color: '#38bdf8' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#ffffff' }}>Defense Status</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#ffffff' }}>Protection Status</span>
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Deterministic Engine Active • Auto-Remediation Rollback Ready
+              Active Cloud Defense • Safe Auto-Fix Enabled
             </div>
           </div>
         </aside>
@@ -508,19 +565,19 @@ export const AppLayout: React.FC = () => {
                     backgroundColor: health?.status === 'healthy' ? '#10b981' : '#f59e0b',
                   }}
                 />
-                POSTGRESQL 15: {health?.status === 'healthy' ? 'CONNECTED' : 'STANDBY'}
+                SYSTEM: {health?.status === 'healthy' ? 'HEALTHY' : 'STANDBY'}
               </span>
 
-              <span>MCP BOUNDARY: {mcpServerCount} SERVERS ONLINE</span>
-              <span>POLICY ENGINE: 44 DETERMINISTIC RULES</span>
+              <span>AWS: {user?.aws_account_id || '817760095153'} (AP-SOUTHEAST-2)</span>
+              <span>44 SECURITY RULES ACTIVE</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              <span>ENCLAVE ROLE: {user?.role || 'VIEWER'}</span>
+              <span>ROLE: {user?.role || 'VIEWER'}</span>
               <span>
-                KILL SWITCH:{' '}
+                AUTO-FIX:{' '}
                 <strong style={{ color: killSwitch.active ? '#f43f5e' : '#10b981' }}>
-                  {killSwitch.active ? 'HALTED' : 'ARMED & READY'}
+                  {killSwitch.active ? 'PAUSED' : 'ACTIVE & READY'}
                 </strong>
               </span>
             </div>
@@ -646,31 +703,33 @@ const NavItem: React.FC<{
   to: string
   icon: React.ReactNode
   label: string
+  subtitle?: string
   color?: string
   onClick?: () => void
 }> = ({
   to,
   icon,
   label,
+  subtitle,
   color = 'var(--text-muted)',
   onClick,
 }) => (
   <NavLink
     to={to}
     onClick={onClick}
+    className={({ isActive }) => `cg-nav-3d ${isActive ? 'active' : ''}`}
     style={({ isActive }) => ({
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      padding: '7px 10px',
+      padding: '8px 10px',
       borderRadius: 'var(--radius-sm)',
       textDecoration: 'none',
-      fontSize: 'var(--font-size-xs)',
-      fontWeight: isActive ? 700 : 500,
       color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
       background: isActive ? 'var(--accent-bg)' : 'transparent',
       border: isActive ? '1px solid var(--accent-border)' : '1px solid transparent',
       transition: 'all 0.15s ease',
+      marginBottom: 3,
     })}
   >
     {({ isActive }) => (
@@ -680,12 +739,20 @@ const NavItem: React.FC<{
             color: isActive ? 'var(--accent-cyan)' : color,
             display: 'flex',
             alignItems: 'center',
-            opacity: isActive ? 1 : 0.75,
+            opacity: isActive ? 1 : 0.85,
+            padding: 5,
+            borderRadius: 6,
+            background: isActive ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255, 255, 255, 0.03)',
           }}
         >
           {icon}
         </span>
-        <span style={{ flex: 1 }}>{label}</span>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 600 }}>{label}</span>
+          {subtitle && (
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1, lineHeight: 1.1 }}>{subtitle}</span>
+          )}
+        </div>
       </>
     )}
   </NavLink>

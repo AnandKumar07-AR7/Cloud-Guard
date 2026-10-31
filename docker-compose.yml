@@ -70,7 +70,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-https://localhost,https://127.0.0.1,https://localhost:443,https://127.0.0.1:443,https://localhost:3000,http://localhost:3000}
     ports:
       - "127.0.0.1:8000:8000"
-    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
     volumes:
       - cloudguard-logs:/app/logs
     depends_on:

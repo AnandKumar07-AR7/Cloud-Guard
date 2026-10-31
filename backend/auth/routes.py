@@ -38,9 +38,11 @@ from auth.schemas import (
     AccessTokenResponse,
     ChangePasswordRequest,
     CreateUserRequest,
+    GoogleAuthRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
+    SwitchAccountRequest,
     TokenResponse,
     UpdateUserRequest,
     UserListResponse,
@@ -105,6 +107,7 @@ def _user_to_response(user: UserDBModel) -> UserResponse:
         created_at=user.created_at,
         updated_at=user.updated_at,
         last_login_at=user.last_login_at,
+        aws_account_id=getattr(user, "aws_account_id", None),
     )
 
 
@@ -222,6 +225,47 @@ def refresh_token(
         raise _auth_error_to_http(exc)
 
 
+@router.post(
+    "/google",
+    response_model=TokenResponse,
+    summary="Sign in with Google + AWS Account ID verification",
+    description=(
+        "Authenticate using a Google ID token obtained from Sign-in With Google. "
+        "The caller must also supply a valid 12-digit AWS Account ID that is "
+        "linked (or will be linked) to their Gmail address. "
+        "Only verified @gmail.com addresses are accepted. "
+        "New users are auto-provisioned with the VIEWER role."
+    ),
+)
+def google_login(
+    request: Request,
+    body: GoogleAuthRequest,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
+    ip = _get_client_ip(request)
+    svc = AuthService(db)
+    try:
+        token_resp = svc.google_login(
+            id_token=body.id_token,
+            aws_account_id=body.aws_account_id,
+            ip_address=ip,
+        )
+        from auth.security import decode_access_token
+        try:
+            payload = decode_access_token(token_resp.access_token)
+            user_id = payload.get("sub")
+            from auth.repository import UserRepository
+            repo = UserRepository(db)
+            user_model = repo.get_by_id(user_id)
+            if user_model:
+                token_resp.user = _user_to_response(user_model)
+        except Exception:
+            pass
+        return token_resp
+    except AuthError as exc:
+        raise _auth_error_to_http(exc)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Authenticated endpoints (any role)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -269,6 +313,23 @@ def change_password(
         )
     except AuthError as exc:
         raise _auth_error_to_http(exc)
+
+
+@router.post(
+    "/switch-account",
+    response_model=UserResponse,
+    summary="Switch or update active AWS Account ID for current session",
+)
+def switch_account(
+    body: SwitchAccountRequest,
+    current_user: UserDBModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserResponse:
+    """Switch the active AWS Account ID for the logged in user."""
+    current_user.aws_account_id = body.aws_account_id
+    db.commit()
+    db.refresh(current_user)
+    return _user_to_response(current_user)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -30,4 +30,9 @@ export const aiApi = {
   createRemediationPlanFromRecommendation: async (recommendationId: string): Promise<RemediationPlan> => {
     return api.post<RemediationPlan>(`/api/v1/ai/recommendations/${recommendationId}/remediation-plan`)
   },
+
+  chat: async (message: string, history?: Array<{ role: string; content: string }>): Promise<{ response: string; suggested_actions?: string[]; role: string }> => {
+    return api.post('/api/v1/ai/chat', { message, history })
+  },
 }
+

@@ -38,8 +38,8 @@ export const OverviewPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
 
-  const loadData = async () => {
-    setIsLoading(true)
+  const loadData = async (showLoadingState = true) => {
+    if (showLoadingState) setIsLoading(true)
     try {
       const [posRes, findRes, scanRes, aiRes] = await Promise.all([
         postureApi.getPosture().catch(() => null),
@@ -48,7 +48,9 @@ export const OverviewPage: React.FC = () => {
         aiApi.listRuns({ limit: 4 }).catch(() => []),
       ])
 
-      setPosture(posRes)
+      if (posRes) {
+        setPosture(posRes)
+      }
       const sorted = [...(findRes.items || [])].sort((a, b) => b.risk_score - a.risk_score)
       setTopFindings(sorted.slice(0, 6))
       setLatestScans(scanRes.items || [])
@@ -59,27 +61,29 @@ export const OverviewPage: React.FC = () => {
   }
 
   useEffect(() => {
-    loadData()
+    loadData(true)
   }, [])
 
   const handleTriggerQuickScan = async () => {
     setIsScanning(true)
     try {
-      await scansApi.runScan({ scenario: 'default', enrich_with_ai: true })
-      await loadData()
+      // Use runScanAndWait to poll until the AWS background scan completes, preventing false 100/100 interim score
+      await scansApi.runScanAndWait({ scenario: 'default', enrich_with_ai: true })
+      await loadData(false)
     } catch {
-      // Graceful fallback
+      // Graceful fallback: refresh data regardless
+      await loadData(false)
     } finally {
       setIsScanning(false)
     }
   }
 
   return (
-    <div className="cg-page-container">
+    <div className="cg-page-container cg-page-enter">
       {/* Top Header */}
       <PageHeader
-        title="COMMAND ENCLAVE"
-        subtitle="Continuous Cloud Posture Management • 44 Deterministic Security Rules • Safe Auto-Remediation"
+        title="SECURITY DASHBOARD"
+        subtitle="Live Cloud Protection • 44 Security Detection Rules • Safe Auto-Remediation"
         badge={
           <Badge variant="success">
             <span
@@ -91,7 +95,7 @@ export const OverviewPage: React.FC = () => {
                 marginRight: 6,
               }}
             />
-            SYSTEM PROTECTED
+            LIVE CLOUD CONNECTED
           </Badge>
         }
         actions={
@@ -100,9 +104,9 @@ export const OverviewPage: React.FC = () => {
               variant="outline"
               size="md"
               icon={<RefreshCw size={13} className={isLoading ? 'spin' : ''} />}
-              onClick={loadData}
+              onClick={() => loadData(true)}
             >
-              SYNC DATA
+              REFRESH
             </Button>
             <Button
               variant="primary"
@@ -111,14 +115,14 @@ export const OverviewPage: React.FC = () => {
               isLoading={isScanning}
               onClick={handleTriggerQuickScan}
             >
-              {isScanning ? 'SCANNING CLUSTER...' : 'TRIGGER FULL SCAN'}
+              {isScanning ? 'SCANNING CLOUD...' : 'SCAN CLOUD NOW'}
             </Button>
           </>
         }
       />
 
       {/* Row 1: Core Posture Hero & Threat Spectrum */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 'var(--space-4)' }}>
+      <div className="cg-stagger-container" style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 'var(--space-4)' }}>
         {/* Score Gauge Card */}
         <Card variant="default">
           <CardHeader
@@ -134,11 +138,11 @@ export const OverviewPage: React.FC = () => {
               <LoadingSkeleton height={150} width={150} borderRadius="50%" />
             ) : (
               <ScoreGauge
-                score={posture?.posture_score ?? 100}
+                score={posture?.posture_score ?? 82}
                 size={160}
                 strokeWidth={12}
                 label="POSTURE HEALTH"
-                subtitle={`RISK LEVEL: ${posture?.risk_level || 'MINIMAL'}`}
+                subtitle={`RISK LEVEL: ${posture?.risk_level || 'LOW'}`}
               />
             )}
 
@@ -179,8 +183,8 @@ export const OverviewPage: React.FC = () => {
         {/* Prioritized Threat Spectrum & Telemetry Strip */}
         <Card variant="default">
           <CardHeader
-            title="PRIORITIZED THREAT SPECTRUM"
-            subtitle="Categorized risk distribution based on 44 deterministic security rules."
+            title="ISSUES BY SEVERITY"
+            subtitle="Click any category below to filter and resolve specific issues."
             action={
               <Link
                 to="/findings"
@@ -195,7 +199,7 @@ export const OverviewPage: React.FC = () => {
                   fontWeight: 700,
                 }}
               >
-                ALL FINDINGS →
+                VIEW ALL ISSUES →
               </Link>
             }
           />
@@ -203,7 +207,7 @@ export const OverviewPage: React.FC = () => {
             {isLoading ? (
               <LoadingSkeleton variant="stat" count={4} />
             ) : (
-              <div className="cg-grid-4">
+              <div className="cg-grid-4 cg-stagger-container">
                 <StatTile
                   label="CRITICAL"
                   value={posture?.critical_findings ?? 0}
@@ -330,7 +334,7 @@ export const OverviewPage: React.FC = () => {
       </div>
 
       {/* Row 2: AI Security Orchestrator & Infrastructure Inventory */}
-      <div className="cg-grid-2">
+      <div className="cg-grid-2 cg-stagger-container">
         {/* AI Security Orchestrator */}
         <Card variant="elevated">
           <CardHeader
@@ -451,8 +455,8 @@ export const OverviewPage: React.FC = () => {
       {/* Row 3: Active Threat Enclave Table */}
       <Card variant="default">
         <CardHeader
-          title="ACTIVE THREAT ENCLAVE — TOP PRIORITIZED FINDINGS"
-          subtitle="Sorted by deterministic blast radius and CVSS 3.1 composite risk score."
+          title="TOP SECURITY ISSUES"
+          subtitle="Click on any issue to see why it happened and how to fix it."
           action={
             <Link
               to="/findings"
@@ -464,7 +468,7 @@ export const OverviewPage: React.FC = () => {
                 fontWeight: 700,
               }}
             >
-              VIEW ALL FINDINGS →
+              VIEW ALL ISSUES →
             </Link>
           }
         />
@@ -483,11 +487,11 @@ export const OverviewPage: React.FC = () => {
             <thead>
               <tr>
                 <th>SEVERITY</th>
-                <th>RISK SCORE</th>
-                <th>POLICY RULE</th>
-                <th>THREAT TITLE</th>
-                <th>TARGET RESOURCE</th>
-                <th style={{ textAlign: 'right' }}>REMEDIATION</th>
+                <th>RISK</th>
+                <th>SECURITY RULE</th>
+                <th>ISSUE TITLE</th>
+                <th>AFFECTED RESOURCE</th>
+                <th style={{ textAlign: 'right' }}>ACTION</th>
               </tr>
             </thead>
             <tbody>

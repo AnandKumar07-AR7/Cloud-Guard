@@ -25,6 +25,7 @@ from sqlalchemy.types import TypeDecorator, VARCHAR
 import json
 
 from core.database import Base
+from auth.models import UserDBModel
 
 
 # We use a custom JSON type decorator for SQLite compatibility in tests.
@@ -599,6 +600,25 @@ class MCPAuditEventDBModel(Base):
     timestamp = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
 
     user = relationship("UserDBModel")
+
+
+class ConnectedAccountDBModel(Base):
+    """
+    Connected cloud accounts (AWS cross-account IAM role trust).
+    Stores account metadata, assumed role ARN, and external ID.
+    """
+    __tablename__ = "connected_accounts"
+
+    account_id       = Column(String(32), primary_key=True)
+    account_name     = Column(String(100), nullable=False)
+    role_arn         = Column(String(255), nullable=False)
+    external_id      = Column(String(128), nullable=False)
+    region           = Column(String(32), nullable=False, default="us-east-1")
+    status           = Column(String(32), nullable=False, default="CONNECTED")
+    last_verified_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at       = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    owner_email      = Column(String(255), nullable=True)
+
 
 
 

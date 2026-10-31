@@ -26,7 +26,7 @@ _START_TIME = time.monotonic()
 @router.get("/", include_in_schema=False)
 async def root():
     return {
-        "service": "CloudGuard API",
+        "service": "AegisByte API",
         "version": "1.0.0-phase2",
         "mode": settings.cloudguard_mode.value,
         "docs": "/docs",
@@ -51,12 +51,14 @@ async def health_check(db=Depends(get_db)):
         db_status = "unavailable"
         app_status = "degraded"
 
+    ai_enabled = settings.has_anthropic_key or settings.has_gemini_key
+
     return HealthResponse(
         status=app_status,
         mode=settings.cloudguard_mode.value,
         version="1.0.0-phase2",
         timestamp=datetime.now(timezone.utc).isoformat(),
-        ai_enabled=settings.has_anthropic_key,
+        ai_enabled=ai_enabled,
         uptime_seconds=round(time.monotonic() - _START_TIME, 1),
         database_status=db_status,
     )
@@ -70,15 +72,31 @@ async def get_mode():
     Accurately reflects runtime configuration.
     Never reports AWS Connected when running in Demo mode.
     """
-    ai_source = "claude" if settings.has_anthropic_key else "template"
+    if settings.has_gemini_key:
+        ai_source = "gemini"
+    elif settings.has_anthropic_key:
+        ai_source = "claude"
+    else:
+        ai_source = "template"
+
+    ai_enabled = settings.has_anthropic_key or settings.has_gemini_key
 
     return ModeResponse(
         mode=settings.cloudguard_mode.value,
         is_demo=settings.is_demo_mode,
         is_aws=settings.is_aws_mode,
-        ai_enabled=settings.has_anthropic_key,
+        ai_enabled=ai_enabled,
         ai_source=ai_source,
         aws_region=settings.aws_default_region if settings.is_aws_mode else None,
         available_scenarios=DemoProvider.available_scenarios() if settings.is_demo_mode else None,
         message=settings.mode_banner(),
     )
+
+
+@router.get("/system/providers")
+async def get_providers():
+    """
+    Get registered multi-cloud provider architectures and capability matrices.
+    """
+    from core.providers.registry import get_supported_providers
+    return {"providers": [p.model_dump() for p in get_supported_providers()]}

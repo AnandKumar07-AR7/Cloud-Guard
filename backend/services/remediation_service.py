@@ -31,9 +31,25 @@ class RemediationService:
         }
 
     def _get_provider(self, name: str):
+        if name == "aws":
+            if "aws" not in self._providers:
+                from config.settings import settings
+                from core.providers.aws.provider import AWSProvider
+                aws_prov = AWSProvider(
+                    region=settings.aws_default_region,
+                    profile=settings.aws_profile,
+                    access_key_id=settings.aws_access_key_id,
+                    secret_access_key=settings.aws_secret_access_key,
+                    role_arn=settings.aws_role_arn,
+                    role_session_name=settings.aws_role_session_name,
+                    external_id=settings.aws_external_id,
+                )
+                self._providers["aws"] = AWSRemediationProvider(session=aws_prov._get_session())
+            return self._providers["aws"]
+
         provider = self._providers.get(name)
         if not provider:
-            raise ValueError(f"Unknown remediation provider: {name}. Only 'demo' is available in this mode.")
+            raise ValueError(f"Unknown remediation provider: {name}.")
         return provider
 
     def _determine_provider(self, account_id: str) -> str:
@@ -316,11 +332,14 @@ class RemediationService:
         if not db_plan:
             raise ValueError(f"Plan {remediation_id} not found.")
 
-        # Separation of duties: creator cannot approve their own plan
+        # Separation of duties: creator cannot approve their own plan unless holding ADMIN authority
         if db_plan.created_by == user_id:
-            raise PermissionError(
-                "Separation of duties: the creator of a remediation plan cannot approve it."
-            )
+            from auth.models import UserDBModel
+            user = session.scalar(select(UserDBModel).where(UserDBModel.user_id == user_id))
+            if not (user and user.role and user.role.name == "ADMIN"):
+                raise PermissionError(
+                    "Separation of duties: the creator of a remediation plan cannot approve it."
+                )
 
         current_state = RemediationState(db_plan.state)
         target_state = RemediationState.APPROVED

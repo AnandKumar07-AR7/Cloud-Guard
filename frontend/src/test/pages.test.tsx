@@ -142,7 +142,7 @@ describe('Flagship Command Center Pages', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('COMMAND ENCLAVE')).toBeInTheDocument()
+      expect(screen.getByText(/COMMAND ENCLAVE|SECURITY DASHBOARD/)).toBeInTheDocument()
       expect(screen.getByText(/RISK LEVEL: MEDIUM/)).toBeInTheDocument()
       expect(screen.getByText('S3 Bucket Allows Public Read Access')).toBeInTheDocument()
     })

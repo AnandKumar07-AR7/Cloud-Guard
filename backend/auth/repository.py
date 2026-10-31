@@ -66,6 +66,12 @@ class UserRepository:
             select(UserDBModel).where(UserDBModel.email == email)
         ).scalar_one_or_none()
 
+    def get_by_google_sub(self, google_sub: str) -> Optional[UserDBModel]:
+        """Lookup user by their stable Google Subject ID."""
+        return self.db.execute(
+            select(UserDBModel).where(UserDBModel.google_sub == google_sub)
+        ).scalar_one_or_none()
+
     def list(self, limit: int = 50, offset: int = 0) -> List[UserDBModel]:
         return list(
             self.db.execute(

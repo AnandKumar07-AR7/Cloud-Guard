@@ -8,6 +8,8 @@ import {
   RotateCw,
   Cpu,
   Wrench,
+  CheckCircle,
+  Clock,
 } from 'lucide-react'
 import { findingsApi } from '../../api/findingsApi'
 import { scansApi } from '../../api/scansApi'
@@ -235,7 +237,9 @@ export const FindingsPage: React.FC = () => {
             >
               <option value="ALL">All Statuses</option>
               <option value="OPEN">Open</option>
+              <option value="VERIFICATION_PENDING">Pending Verification</option>
               <option value="RESOLVED">Resolved</option>
+              <option value="REMEDIATION_PLANNED">Remediation Planned</option>
               <option value="SUPPRESSED">Suppressed</option>
             </select>
 
@@ -409,7 +413,7 @@ export const FindingsPage: React.FC = () => {
 
                       {/* Actions */}
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', alignItems: 'center' }}>
                           <Link
                             to={`/findings/${finding.finding_id}/investigate`}
                             style={{
@@ -428,6 +432,55 @@ export const FindingsPage: React.FC = () => {
                           >
                             <Cpu size={12} />
                             Investigate
+                          </Link>
+
+                          <Link
+                            to={`/remediation?finding_id=${finding.finding_id}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              background:
+                                finding.status === 'RESOLVED'
+                                  ? 'rgba(16, 185, 129, 0.15)'
+                                  : finding.status === 'VERIFICATION_PENDING'
+                                  ? 'rgba(245, 158, 11, 0.15)'
+                                  : 'rgba(6, 182, 212, 0.15)',
+                              border:
+                                finding.status === 'RESOLVED'
+                                  ? '1px solid rgba(16, 185, 129, 0.3)'
+                                  : finding.status === 'VERIFICATION_PENDING'
+                                  ? '1px solid rgba(245, 158, 11, 0.3)'
+                                  : '1px solid rgba(6, 182, 212, 0.3)',
+                              borderRadius: 'var(--radius-sm)',
+                              color:
+                                finding.status === 'RESOLVED'
+                                  ? '#34d399'
+                                  : finding.status === 'VERIFICATION_PENDING'
+                                  ? '#fbbf24'
+                                  : '#38bdf8',
+                              fontSize: '11px',
+                              textDecoration: 'none',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {finding.status === 'RESOLVED' ? (
+                              <>
+                                <CheckCircle size={12} />
+                                Plan
+                              </>
+                            ) : finding.status === 'VERIFICATION_PENDING' ? (
+                              <>
+                                <Clock size={12} />
+                                Verify
+                              </>
+                            ) : (
+                              <>
+                                <Wrench size={12} />
+                                Remediate
+                              </>
+                            )}
                           </Link>
                         </div>
                       </td>

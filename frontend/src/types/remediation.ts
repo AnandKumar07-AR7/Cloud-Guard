@@ -61,6 +61,7 @@ export interface RemediationPlan {
   state: RemediationState
   strategy_id: string
   strategy_name?: string
+  title?: string
   safety?: string
   resource_id?: string
   created_by: string
