@@ -340,7 +340,7 @@ def chat_with_gemini(
             ]) or "No active misconfigurations."
 
             system_instruction = (
-                f"You are the AegisByte Gemini Cloud Security Copilot, an expert autonomous cloud security architect.\n"
+                f"You are the CloudGuard Gemini Cloud Security Copilot, an expert autonomous cloud security architect.\n"
                 f"You are assisting security engineer '{user.username or 'operator'}' on AWS account '{active_account_id}' (region: {settings.aws_default_region}).\n\n"
                 f"LIVE ENVIRONMENT TELEMETRY:\n"
                 f"- Active Open Findings: {total_findings} (High/Critical: {len(high_findings)})\n"

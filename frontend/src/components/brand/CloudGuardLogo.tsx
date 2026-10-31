@@ -85,7 +85,7 @@ export const AegisByteLogo: React.FC<AegisByteLogoProps> = ({
         >
           <img
             src="/aegisbyte-logo.jpg"
-            alt="AegisByte Logo"
+            alt="CloudGuard Logo"
             style={{
               width: '100%',
               height: '100%',
@@ -115,7 +115,7 @@ export const AegisByteLogo: React.FC<AegisByteLogoProps> = ({
                 display: 'block',
               }}
             >
-              AegisByte
+              CloudGuard
             </span>
           </div>
           <span

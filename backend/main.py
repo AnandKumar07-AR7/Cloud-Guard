@@ -148,7 +148,7 @@ async def lifespan(app: FastAPI):
         ai_source=ai_source,
     )
     print(f"\n{'='*60}")
-    print(f"  AegisByte API — Hardened (Auth + RBAC + Security Controls)")
+    print(f"  CloudGuard API — Hardened (Auth + RBAC + Security Controls)")
     print(f"  {settings.mode_banner()}")
     print(f"  AI: {ai_source} ({settings.gemini_model if settings.has_gemini_key else settings.anthropic_model})")
     print(f"  Docs: http://{settings.api_host}:{settings.api_port}/docs")
@@ -380,9 +380,9 @@ def _validate_startup_prerequisites() -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="AegisByte API",
+    title="CloudGuard API",
     description=(
-        "AegisByte — AI-Driven Cloud Security, Misconfiguration Detection, and Automated Remediation.\n\n"
+        "CloudGuard — AI-Driven Cloud Security, Misconfiguration Detection, and Automated Remediation.\n\n"
         "**Hardened**: JWT Authentication + RBAC + Rate Limiting + Security Headers.\n\n"
         "**Demo Mode** — No AWS credentials required. Set `CLOUDGUARD_MODE=demo`.\n"
         "**AWS Mode** — Set `CLOUDGUARD_MODE=aws` with valid AWS credentials.\n\n"

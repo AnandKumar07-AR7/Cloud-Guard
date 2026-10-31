@@ -105,7 +105,7 @@ export const CompliancePage: React.FC = () => {
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           <strong style={{ color: 'var(--text-high)' }}>Architectural Boundary: </strong>
           Standalone <code className="font-mono text-cyan">/compliance/frameworks</code> endpoints are not fabricated.
-          AegisByte deterministically aggregates compliance contexts and regulatory control references from evaluated
+          CloudGuard deterministically aggregates compliance contexts and regulatory control references from evaluated
           detection rules and active findings.
         </div>
       </div>

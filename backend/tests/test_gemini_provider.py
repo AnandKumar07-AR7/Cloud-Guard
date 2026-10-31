@@ -1,5 +1,5 @@
 """
-CloudGuard / AegisByte — Unit Tests for GeminiAIProvider
+CloudGuard — Unit Tests for GeminiAIProvider
 """
 import pytest
 import httpx

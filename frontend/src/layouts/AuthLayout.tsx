@@ -28,7 +28,7 @@ export const AuthLayout: React.FC = () => {
         className="text-xs font-mono text-muted"
         style={{ marginTop: 28, letterSpacing: '0.04em', textAlign: 'center' }}
       >
-        AEGISBYTE SECURITY PLATFORM • AUTONOMOUS CLOUD DEFENSE
+        CLOUDGUARD SECURITY PLATFORM • AUTONOMOUS CLOUD DEFENSE
       </div>
     </div>
   )

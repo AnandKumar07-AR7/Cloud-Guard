@@ -26,7 +26,7 @@ _START_TIME = time.monotonic()
 @router.get("/", include_in_schema=False)
 async def root():
     return {
-        "service": "AegisByte API",
+        "service": "CloudGuard API",
         "version": "1.0.0-phase2",
         "mode": settings.cloudguard_mode.value,
         "docs": "/docs",

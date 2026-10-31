@@ -1,5 +1,5 @@
 """
-AegisByte — Google Gemini AI Provider
+CloudGuard — Google Gemini AI Provider
 
 Integrates with Google Gemini API via REST using httpx (no external SDK required).
 Supports declarative tool calling and structured investigation/recommendations.

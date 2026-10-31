@@ -28,7 +28,7 @@ export const ReportsPage: React.FC = () => {
         <Info size={17} style={{ color: 'var(--accent-primary)', marginTop: '2px', flexShrink: 0 }} />
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           <strong style={{ color: 'var(--text-high)' }}>Architectural Boundary: </strong>
-          The AegisByte backend does not expose an asynchronous report rendering or export endpoint.
+          The CloudGuard backend does not expose an asynchronous report rendering or export endpoint.
           Per Section 41 zero-compromise rules, mock PDF/CSV generation is strictly prohibited. Security posture,
           findings, and compliance registries are accessible live via their respective operational views.
         </div>

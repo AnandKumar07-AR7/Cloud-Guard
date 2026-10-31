@@ -6,6 +6,7 @@ export interface ConnectedAccount {
   role_arn: string
   external_id: string
   region: string
+  default_region?: string
   status: 'CONNECTED' | 'PENDING_VERIFICATION' | 'ERROR' | string
   last_verified_at: string
   created_at: string
@@ -21,12 +22,15 @@ export interface GenerateExternalIdResponse {
   quick_launch_url: string
 }
 
+export type ExternalIdResponse = GenerateExternalIdResponse
+
 export interface ConnectAccountRequest {
   account_id: string
   account_name: string
   role_arn: string
   external_id: string
-  region: string
+  region?: string
+  default_region?: string
 }
 
 export const accountsApi = {
@@ -34,16 +38,21 @@ export const accountsApi = {
     return api.get<ConnectedAccount[]>('/api/v1/accounts')
   },
 
-  generateExternalId: async (): Promise<GenerateExternalIdResponse> => {
-    return api.post<GenerateExternalIdResponse>('/api/v1/accounts/generate-external-id')
+  generateExternalId: async (targetAccountId?: string): Promise<GenerateExternalIdResponse> => {
+    return api.post<GenerateExternalIdResponse>('/api/v1/accounts/generate-external-id', {
+      account_id: targetAccountId,
+    })
   },
 
-  connectAccount: async (data: ConnectAccountRequest): Promise<ConnectedAccount> => {
-    return api.post<ConnectedAccount>('/api/v1/accounts/connect', data)
+  connectAccount: async (data: ConnectAccountRequest): Promise<{ account: ConnectedAccount }> => {
+    const res = await api.post<ConnectedAccount>('/api/v1/accounts/connect', {
+      ...data,
+      region: data.region || data.default_region || 'us-east-1',
+    })
+    return { account: res }
   },
 
   disconnectAccount: async (accountId: string): Promise<void> => {
     return api.delete(`/api/v1/accounts/${accountId}`)
   },
 }
-
